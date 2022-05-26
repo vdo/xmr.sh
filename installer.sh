@@ -49,15 +49,20 @@ On_White='\033[47m'  # White
 OkBullet="${OnBlack}${Green}:: ${White}"
 WarnBullet="${OnBlack}${Yellow}:: ${White}"
 ErrBullet="${OnBlack}${Red}:: ${White}"
-Done="${OnBlack}${White} done.${Off}"
+Ok="${OnBlack}${Green} ok.${Off}"
 Fail="${OnBlack}${Red} failed!${Off}"
+Nok="${OnBlack}${Yellow} nok.${Off}"
 
 ################################################################
-# Constants                                                    #
+# Vars                                                         #
 ################################################################
 VERSION="v0.1.0"
 XMRSH_DIR="/opt/xmr.sh"
 XMRSH_LOG_FILE="/tmp/xmr.sh-$(date +%Y%m%d-%H%M%S).log"
+DOCKER_INSTALLED=false
+DOCKER_COMPOSE_INSTALLED=false
+DOCKER_COMPOSE_VERSION="v2.5.0"
+DEPENDENCIES="git curl"
 
 ################################################################
 # Functions                                                    #
@@ -72,56 +77,142 @@ header() {
     echo -e "                 Version ${VERSION}${Off}\n"
 }
 
-detect_root() { (
-    set -e
+detect_root() {
     echo -ne "${OkBullet}Checking root... ${Off}"
     if [[ $EUID -ne 0 ]]; then
         echo -e "${Fail}"
         echo -e "${ErrBullet}You need to run this script as root (UID=0).${Off}"
         exit 1
     fi
-    echo -e "${Done}"
-); }
+    echo -e "${Ok}"
+}
 
-detect_docker() { (
-    set -e
-    which docker >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        docker --version | grep "Docker version" >${XMRSH_LOG_FILE} 2>&1
-        if [ $? -eq 0 ]; then
-            echo "Docker installation exists!"
-        else
-            echo "install docker"
+check_deps() {
+    echo -ne "${OkBullet}Checking and installing dependencies... ${Off}"
+    for pkg in ${DEPENDENCIES[@]}; do
+        if ! which ${pkg} >>"${XMRSH_LOG_FILE}" 2>&1; then
+            echo "installing ${pkg}"
+            check_return $?
         fi
+    done
+    echo -e "${Ok}"
+}
+
+install_pkg() {
+    # This detects both ubuntu and debian
+    if grep -q "debian" /etc/os-release; then
+        apt-get update >>"${XMRSH_LOG_FILE}" 2>&1
+        apt-get install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
+    elif grep -q "arch" /etc/os-release; then
+        pacman -Sy --noconfirm $1 >>"${XMRSH_LOG_FILE}" 2>&1
+    elif grep -q "fedora" /etc/os-release; then
+        dnf update >>"${XMRSH_LOG_FILE}" 2>&1
+        dnf install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
     else
-        echo "install docker" >&2
+        echo -e "${ErrBullet}Cannot detect your distribution package manager.${Off}"
+        exit 1
     fi
-); }
+}
 
-# Detect Docker Compose
-detect_docker_compose() {
-    docker compose version >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        docker --version | grep "Docker version" >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo "Docker installation exists!"
-        else
-            echo "install docker"
-        fi
+detect_curl() {
+    echo -ne "${OkBullet}Checking curl... ${Off}"
+    # docker --version >>"${XMRSH_LOG_FILE}" 2>&1 | grep -q "Docker version"
+    if curl --version >>"${XMRSH_LOG_FILE}" 2>&1; then
+        echo -e "${Ok}"
     else
-        echo "install docker" >&2
+        echo -e "${Nok}"
+        echo -e "${ErrBullet}Please install curl first.${Off}"
+        exit 1
+    fi
+}
+
+detect_docker() {
+    echo -ne "${OkBullet}Checking docker... ${Off}"
+    # docker --version >>"${XMRSH_LOG_FILE}" 2>&1 | grep -q "Docker version"
+    if docker --version >>"${XMRSH_LOG_FILE}" 2>&1; then
+        DOCKER_INSTALLED=true
+        echo -e "${Ok}"
+    else
+        echo -e "${Nok}"
+    fi
+}
+
+detect_docker_compose() {
+    echo -ne "${OkBullet}Checking docker compose... ${Off}"
+    #docker-compose --version >>"${XMRSH_LOG_FILE}" 2>&1 | grep -q "Docker Compose version"
+    if docker-compose --version >>"${XMRSH_LOG_FILE}" 2>&1; then
+        DOCKER_COMPOSE_INSTALLED=true
+        echo -e "${Ok}"
+    else
+        echo -e "${Nok}"
     fi
 }
 
 install_docker() { (
-    set -e
     echo -ne "${OkBullet}Installing docker... ${Off}"
-    # Install docker
-    curl -fsSL https://get.docker.com -o - | bash 2>&1
-    echo -e "${Done}"
+    # Docker Installer as provided in
+    curl -fsSL https://get.docker.com -o - | bash >>"${XMRSH_LOG_FILE}" 2>&1
+    check_return $?
+    echo -e "${Ok}"
 ); }
+
+install_docker_compose() {
+    echo -ne "${OkBullet}Installing compose... ${Off}"
+    # Install docker-compose binary, even if "docker compose" exists, for consistency.
+    curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" -o /usr/local/bin/docker-compose >>"${XMRSH_LOG_FILE}" 2>&1
+    check_return $?
+    chmod +x /usr/local/bin/docker-compose >>"${XMRSH_LOG_FILE}" 2>&1
+    check_return $?
+    echo -e "${Ok}"
+}
+
+install_xmrsh() {
+    echo -ne "${OkBullet}Installing xmr.sh... ${Off}"
+    if [ ! -d "$XMRSH_DIR" ]; then
+        git clone https://github.com/vdo/xmr.sh "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+        check_return $?
+    else
+        echo -e "${Ok}"
+        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}"
+        return
+    fi
+    echo -e "${Ok}"
+}
+
+start_xmrsh() {
+    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+    echo -ne "${OkBullet}Starting monero node... ${Off}"
+    docker-compose pull >>"${XMRSH_LOG_FILE}" 2>&1
+    check_return $?
+    docker-compose up -d >>"${XMRSH_LOG_FILE}" 2>&1
+    check_return $?
+    echo -e "${Ok}"
+}
+
+check_return() {
+    if [ $1 -ne 0 ]; then
+        echo -e "${Fail}"
+        echo -e "${ErrBullet}Installation failed. Check the logs in ${XMRSH_LOG_FILE}${Off}"
+        exit "$1"
+    fi
+}
+
 header
 detect_root
+check_deps
 detect_docker
+detect_docker_compose
+
+if [ $DOCKER_INSTALLED = false ]; then
+    install_docker
+    install_docker_compose
+fi
+
+if [ $DOCKER_INSTALLED = true ] && [ $DOCKER_COMPOSE_INSTALLED = false ]; then
+    install_docker_compose
+fi
+
+install_xmrsh
+start_xmrsh
 
 exit 0
