@@ -1,5 +1,3 @@
-version: "3.7"
-
 services:
   traefik:
     image: traefik:${TRAEFIK_TAG}
@@ -19,10 +17,6 @@ services:
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.le.acme.httpchallenge=true"
-      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.le.acme.email=${TRAEFIK_ACME_EMAIL}"
-      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
     restart: always
   monerod:
     container_name: monerod
@@ -36,11 +30,11 @@ services:
       - "18089"
     volumes:
       - "monerod-data:/home/monero/.bitmonero"
-    environment:
+    labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`))"
+      - "traefik.http.routers.monerod.rule=(PathPrefix(`/`))"
       - "traefik.http.routers.monerod.entrypoints=websecure"
-      - "traefik.http.routers.monerod.tls.certresolver=le"
+      - "traefik.http.routers.monerod.tls"
       - "traefik.http.routers.monerod.service=monerod"
       - "traefik.http.services.monerod.loadbalancer.server.port=18089"
       - "traefik.http.middlewares.corsheader.headers.accessControlAllowOriginList=*"

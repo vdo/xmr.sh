@@ -1,0 +1,59 @@
+version: "3.7"
+
+services:
+  traefik:
+    image: traefik:${TRAEFIK_TAG}
+    container_name: traefik
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    command:
+      - "--log.level=${TRAEFIK_LOGLEVEL}"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.email=${TRAEFIK_ACME_EMAIL}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+    restart: always
+  monerod:
+    container_name: monerod
+    image: sethsimmons/simple-monerod:${MONEROD_TAG}
+    command: >-
+      --restricted-rpc --public-node --no-igd --no-zmq
+      --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 --rpc-restricted-bind-port=18089 --confirm-external-bind
+      --prune-blockchain
+    ports:
+      - "18080:18080" # Exposes P2P port
+      - "18089"
+    volumes:
+      - "monerod-data:/home/monero/.bitmonero"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`))"
+      - "traefik.http.routers.monerod.entrypoints=websecure"
+      - "traefik.http.routers.monerod.tls.certresolver=le"
+      - "traefik.http.routers.monerod.service=monerod"
+      - "traefik.http.services.monerod.loadbalancer.server.port=18089"
+      - "traefik.http.middlewares.corsheader.headers.accessControlAllowOriginList=*"
+      - "traefik.http.routers.monerod.middlewares=corsheader"
+    restart: unless-stopped
+
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - com.centurylinklabs.watchtower.enable="false"
+    command: --interval 360 --include-stopped
+volumes:
+  monerod-data: {}

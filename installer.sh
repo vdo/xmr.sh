@@ -91,7 +91,7 @@ check_deps() {
     echo -ne "${OkBullet}Checking and installing dependencies... ${Off}"
     for pkg in ${DEPENDENCIES[@]}; do
         if ! which ${pkg} >>"${XMRSH_LOG_FILE}" 2>&1; then
-            echo "installing ${pkg}"
+            install_pkg ${pkg}
             check_return $?
         fi
     done
@@ -106,7 +106,6 @@ install_pkg() {
     elif grep -q "arch" /etc/os-release; then
         pacman -Sy --noconfirm $1 >>"${XMRSH_LOG_FILE}" 2>&1
     elif grep -q "fedora" /etc/os-release; then
-        dnf update >>"${XMRSH_LOG_FILE}" 2>&1
         dnf install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
     else
         echo -e "${ErrBullet}Cannot detect your distribution package manager.${Off}"
@@ -181,6 +180,7 @@ install_xmrsh() {
 
 start_xmrsh() {
     pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+    cp docker-compose.nole.yml docker-compose.yml ## FIXME: Temporal deploy w/o Let's Encrypt
     echo -ne "${OkBullet}Starting monero node... ${Off}"
     docker-compose pull >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
