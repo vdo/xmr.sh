@@ -52,6 +52,8 @@ ErrBullet="${OnBlack}${Red}:: ${White}"
 Ok="${OnBlack}${Green} ok.${Off}"
 Fail="${OnBlack}${Red} failed!${Off}"
 Nok="${OnBlack}${Yellow} nok.${Off}"
+Stat="${OnBlack}${Purple}"
+StatInfo="${OnBlack}${White}"
 
 ################################################################
 # Vars                                                         #
@@ -63,6 +65,7 @@ DOCKER_INSTALLED=false
 DOCKER_COMPOSE_INSTALLED=false
 DOCKER_COMPOSE_VERSION="v2.5.0"
 DEPENDENCIES="git curl"
+ONION="Not Available"
 
 ################################################################
 # Functions                                                    #
@@ -145,7 +148,7 @@ detect_docker_compose() {
     fi
 }
 
-install_docker() { (
+install_docker() {
     echo -ne "${OkBullet}Installing docker... ${Off}"
     # Docker Installer as provided in
     curl -fsSL https://get.docker.com -o - | bash >>"${XMRSH_LOG_FILE}" 2>&1
@@ -156,7 +159,7 @@ install_docker() { (
         systemctl start docker >>"${XMRSH_LOG_FILE}" 2>&1
     fi
     echo -e "${Ok}"
-); }
+}
 
 install_docker_compose() {
     echo -ne "${OkBullet}Installing compose... ${Off}"
@@ -181,9 +184,36 @@ install_xmrsh() {
     echo -e "${Ok}"
 }
 
+read_tls_domain() {
+    echo -e "${OkBullet}Enter the desired domain for the SSL certificate."
+    read -e -p "   Leave empty to use a self signed certificate []: " TLS_DOMAIN
+    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+    if [ ! -z ${TLS_DOMAIN} ]; then
+        while ! echo "${TLS_DOMAIN}" | grep -qP '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'; do
+            echo -e "${WarnBullet}Domain not valid."
+            read -p "   Enter again your desired domain []: " TLS_DOMAIN
+        done
+        # Email needed TRAEFIK_ACME_EMAIL
+
+        sed -i "s/DOMAIN=.*/DOMAIN=${TLS_DOMAIN}/g" .env
+        cp docker-compose.le.yml docker-compose.yml
+    else
+        cp docker-compose.nole.yml docker-compose.yml
+    fi
+}
+
+get_public_ip() {
+    # Using dig:
+    # dig +short txt ch whoami.cloudflare @1.0.0.1
+    PUBLIC_IP=$(curl -s ifconfig.co)
+}
+
+validate_domain() {
+    echo "$1" | grep -P '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'
+}
+
 start_xmrsh() {
     pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
-    cp docker-compose.nole.yml docker-compose.yml ## FIXME: Temporal deploy w/o Let's Encrypt
     echo -ne "${OkBullet}Starting monero node... ${Off}"
     docker-compose pull >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
@@ -200,11 +230,10 @@ start_xmrsh_tor() {
     sleep 3
     ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
     echo -e "${Ok}"
-    echo -e "${OkBullet}Tor hidden service ready at: ${ONION} ${Off}"
 }
 
 check_return() {
-    if [ $1 -ne 0 ]; then
+    if [ "$1" -ne 0 ]; then
         echo -e "${Fail}"
         echo -e "${ErrBullet}Installation failed. Check the logs in ${XMRSH_LOG_FILE}${Off}"
         exit "$1"
@@ -212,8 +241,16 @@ check_return() {
 }
 
 completed() {
-    # FIXME: Show domain / public IP
-    echo -e "${OkBullet}Deployment complete!!${Off}"
+    echo -e "${OkBullet}Deployment complete.${Off}"
+    echo
+    echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
+    if [ ! -z "$TLS_DOMAIN" ]; then
+        echo -e " ${Red}│${Stat} URL: ${StatInfo}${TLS_DOMAIN}:443"
+    fi
+    echo -e " ${Red}│${Stat} Public IP: ${StatInfo}$(curl -s ifconfig.co 2>>"${XMRSH_LOG_FILE}"):443"
+    echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
+    echo -e " ${Red}│"
+    echo
 }
 
 header
@@ -232,6 +269,7 @@ if [ $DOCKER_INSTALLED = true ] && [ $DOCKER_COMPOSE_INSTALLED = false ]; then
 fi
 
 install_xmrsh
+read_tls_domain
 start_xmrsh
 start_xmrsh_tor
 completed
