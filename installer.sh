@@ -103,9 +103,7 @@ install_pkg() {
     if grep -q "debian" /etc/os-release; then
         apt-get update >>"${XMRSH_LOG_FILE}" 2>&1
         apt-get install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
-    elif grep -q "arch" /etc/os-release; then
-        pacman -Sy --noconfirm $1 >>"${XMRSH_LOG_FILE}" 2>&1
-    elif grep -q "fedora" /etc/os-release; then
+    elif grep -q "fedora" /etc/os-release || grep -q "centos" /etc/os-release; then
         dnf install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
     else
         echo -e "${ErrBullet}Cannot detect your distribution package manager.${Off}"
@@ -152,8 +150,8 @@ install_docker() { (
     # Docker Installer as provided in
     curl -fsSL https://get.docker.com -o - | bash >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
-    # Fedora and Arch need to enable & start the daemon
-    if grep -q "fedora" /etc/os-release || grep -q "arch" /etc/os-release; then
+    # Fedora and Centos need to enable & start the daemon
+    if grep -q "fedora" /etc/os-release || grep -q "centos" /etc/os-release; then
         systemctl enable docker
         systemctl start docker >>"${XMRSH_LOG_FILE}" 2>&1
     fi
@@ -196,13 +194,13 @@ start_xmrsh() {
 
 start_xmrsh_tor() {
     pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
-    "${OkBullet}Starting tor hidden service... ${Off}"
+    echo -ne "${OkBullet}Starting tor hidden service... ${Off}"
     docker-compose -f docker-compose.yml -f docker-compose.tor.yml up -d >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
     sleep 3
-    ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 1)
+    ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
     echo -e "${Ok}"
-    "${OkBullet}Tor hidden service ready at: ${ONION} ${Off}"
+    echo -e "${OkBullet}Tor hidden service ready at: ${ONION} ${Off}"
 }
 
 check_return() {
@@ -215,7 +213,7 @@ check_return() {
 
 completed() {
     # FIXME: Show domain / public IP
-    "${OkBullet}Deployment complete!!${Off}"
+    echo -e "${OkBullet}Deployment complete!!${Off}"
 }
 
 header
