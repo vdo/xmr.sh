@@ -152,6 +152,10 @@ install_docker() { (
     # Docker Installer as provided in
     curl -fsSL https://get.docker.com -o - | bash >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
+    # Fedora needs to start the daemon
+    if grep -q "fedora" /etc/os-release; then
+        systemctl start docker >>"${XMRSH_LOG_FILE}" 2>&1
+    fi
     echo -e "${Ok}"
 ); }
 

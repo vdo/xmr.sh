@@ -1,0 +1,26 @@
+version: "3.7"
+
+services:
+  tor:
+    container_name: tor
+    image: goldy/tor-hidden-service:${THS_TAG}
+    links:
+      - monerod
+    environment:
+      MONEROD_TOR_SERVICE_HOSTS: "80:monerod:18089"
+    volumes:
+      - tor-keys:/var/lib/tor/hidden_service/
+    # secrets:
+    #   - monerod
+
+volumes:
+  tor-keys:
+    {}
+    # driver: local
+
+# secrets:
+#   monerod:
+#     file: ./private_key_monerod_v3
+networks:
+  default:
+    name: ${NETWORK:-xmrsh_default}
