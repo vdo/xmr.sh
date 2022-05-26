@@ -152,8 +152,9 @@ install_docker() { (
     # Docker Installer as provided in
     curl -fsSL https://get.docker.com -o - | bash >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
-    # Fedora needs to start the daemon
-    if grep -q "fedora" /etc/os-release; then
+    # Fedora and Arch need to enable & start the daemon
+    if grep -q "fedora" /etc/os-release || grep -q "arch" /etc/os-release; then
+        systemctl enable docker
         systemctl start docker >>"${XMRSH_LOG_FILE}" 2>&1
     fi
     echo -e "${Ok}"
@@ -193,12 +194,28 @@ start_xmrsh() {
     echo -e "${Ok}"
 }
 
+start_xmrsh_tor() {
+    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+    "${OkBullet}Starting tor hidden service... ${Off}"
+    docker-compose -f docker-compose.yml -f docker-compose.tor.yml up -d >>"${XMRSH_LOG_FILE}" 2>&1
+    check_return $?
+    sleep 3
+    ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 1)
+    echo -e "${Ok}"
+    "${OkBullet}Tor hidden service ready at: ${ONION} ${Off}"
+}
+
 check_return() {
     if [ $1 -ne 0 ]; then
         echo -e "${Fail}"
         echo -e "${ErrBullet}Installation failed. Check the logs in ${XMRSH_LOG_FILE}${Off}"
         exit "$1"
     fi
+}
+
+completed() {
+    # FIXME: Show domain / public IP
+    "${OkBullet}Deployment complete!!${Off}"
 }
 
 header
@@ -218,5 +235,7 @@ fi
 
 install_xmrsh
 start_xmrsh
+start_xmrsh_tor
+completed
 
 exit 0
