@@ -152,7 +152,7 @@ install_docker() { (
     check_return $?
     # Fedora and Centos need to enable & start the daemon
     if grep -q "fedora" /etc/os-release || grep -q "centos" /etc/os-release; then
-        systemctl enable docker
+        systemctl enable docker >>"${XMRSH_LOG_FILE}" 2>&1
         systemctl start docker >>"${XMRSH_LOG_FILE}" 2>&1
     fi
     echo -e "${Ok}"

@@ -16,3 +16,4 @@ ToDo:
 [ ] Make tor service optional
 [ ] Optional block explorer
 [ ] Grafana with stats
+[ ] Add monerod-proxy
