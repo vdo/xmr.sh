@@ -68,6 +68,7 @@ DOCKER_COMPOSE_INSTALLED=false
 DOCKER_COMPOSE_VERSION="v2.5.0"
 DEPENDENCIES="git curl"
 ONION="Not Available"
+TLS_PORT="443"
 TLS_DOMAIN=""
 TLS_EMAIL=""
 
@@ -181,18 +182,18 @@ install_xmrsh() {
     if [ ! -d "$XMRSH_DIR" ]; then
         git clone -b "${XMRSH_BRANCH}" "${XMRSH_URL}" "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
         check_return $?
+        pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
     else
         echo -e "${Ok}"
-        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}"
+        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}" #FIXME: This should probably exit
         return
     fi
     echo -e "${Ok}"
 }
 
-read_tls_domain() {
+configure_tls_domain() {
     echo -e "${OkBullet}Enter the desired domain for the Let's Encrypt SSL certificate."
     read -r -e -p "   Leave empty to use a self signed certificate []: " TLS_DOMAIN
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
     if [ -n "${TLS_DOMAIN}" ]; then
         while ! echo "${TLS_DOMAIN}" | grep -qP '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'; do
             echo -e "${WarnBullet}Domain not valid."
@@ -208,9 +209,71 @@ read_tls_domain() {
         sed -i "s/DOMAIN=.*/DOMAIN=${TLS_DOMAIN}/g" .env
         sed -i "s/TRAEFIK_ACME_EMAIL=.*/TRAEFIK_ACME_EMAIL=${TLS_EMAIL}/g" .env
         # Enable LE settings in compose
-        sed -i '/#!le/s/# //g' docker-compose.template.yml
-        sed -i "/#\!traefik-command/s/\*traefik-command-nole/\*traefik-command-le/g" docker-compose.template.yml
+        sed -i '/#!le/s/# //g' docker-compose.yml
+        sed -i "/#\!traefik-command/s/\*traefik-command-nole/\*traefik-command-le/g" docker-compose.yml
     fi
+}
+
+configure_cors() {
+    echo -e "${OkBullet}Configuring CORS..."
+    while true; do
+        read -r -e -p "   Do you want to enabe CORS headers so the node can be used in webapps? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!cors/s/# //g' docker-compose.yml
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+configure_tor() {
+    echo -e "${OkBullet}Configuring tor..."
+    while true; do
+        read -r -e -p "   Do you want to enable a Tor hidden service? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!tor/s/# //g' docker-compose.yml
+            ENABLE_TOR=true
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+configure_explorer() {
+    echo -e "${OkBullet}Configuring explorer..."
+    while true; do
+        read -r -e -p "   Do you want to enable an explorer service? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!explorer/s/# //g' docker-compose.yml
+            ENABLE_EXPLORER=true
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+configure_watchtower() {
+    echo -e "${OkBullet}Configuring watchtower..."
+    while true; do
+        read -r -e -p "   Do you want to enable automatic updates using watchtower? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!watchtower/s/# //g' docker-compose.yml
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
 }
 
 # get_public_ip() {
@@ -224,22 +287,16 @@ validate_domain() {
 }
 
 start_xmrsh() {
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
-    echo -ne "${OkBullet}Starting monero node... ${Off}"
+    echo -ne "${OkBullet}Starting monero node and services... ${Off}"
     docker-compose pull >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
     docker-compose up -d >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
-    echo -e "${Ok}"
-}
 
-start_xmrsh_tor() {
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
-    echo -ne "${OkBullet}Starting tor hidden service... ${Off}"
-    docker-compose -f docker-compose.yml -f docker-compose.tor.yml up -d >>"${XMRSH_LOG_FILE}" 2>&1
-    check_return $?
-    sleep 3
-    ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
+    if ENABLE_TOR = true; then
+        sleep 3
+        ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
+    fi
     echo -e "${Ok}"
 }
 
@@ -256,9 +313,9 @@ completed() {
     echo
     echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
     if [ -n "$TLS_DOMAIN" ]; then
-        echo -e " ${Red}│${Stat} URL: ${StatInfo}${TLS_DOMAIN}:443"
+        echo -e " ${Red}│${Stat} URL: ${StatInfo}${TLS_DOMAIN}:${TLS_PORT}"
     fi
-    echo -e " ${Red}│${Stat} Public IP: ${StatInfo}$(curl -s ifconfig.co 2>>"${XMRSH_LOG_FILE}"):443"
+    echo -e " ${Red}│${Stat} Public IP: ${StatInfo}$(curl -s ifconfig.co 2>>"${XMRSH_LOG_FILE}"):${TLS_PORT}"
     echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
     echo -e " ${Red}│"
     echo
@@ -280,9 +337,12 @@ if [ $DOCKER_INSTALLED = true ] && [ $DOCKER_COMPOSE_INSTALLED = false ]; then
 fi
 
 install_xmrsh
-read_tls_domain
+configure_tls_domain
+configure_cors
+configure_tor
+configure_explorer
+configure_watchtower
 start_xmrsh
-start_xmrsh_tor
 completed
 
 exit 0

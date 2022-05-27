@@ -1,0 +1,113 @@
+version: "3.7"
+
+x-traefik-command-le: &traefik-command-le
+  command:
+    - "--log.level=${TRAEFIK_LOGLEVEL}"
+    - "--providers.docker=true"
+    - "--providers.docker.exposedbydefault=false"
+    - "--entrypoints.web.address=:${TRAEFIK_HTTP_PORT}"
+    - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+    - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+    - "--entrypoints.websecure.address=:${TRAEFIK_TLS_PORT}"
+    - "--certificatesresolvers.le.acme.httpchallenge=true"
+    - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+    - "--certificatesresolvers.le.acme.email=${TRAEFIK_ACME_EMAIL}"
+    - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+
+x-traefik-command-nole: &traefik-command-nole
+  command:
+    - "--log.level=${TRAEFIK_LOGLEVEL}"
+    - "--providers.docker=true"
+    - "--providers.docker.exposedbydefault=false"
+    - "--entrypoints.web.address=:${TRAEFIK_HTTP_PORT}"
+    - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+    - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+    - "--entrypoints.websecure.address=:${TRAEFIK_TLS_PORT}"
+
+x-monerod-mainnet-command: &monerod-mainnet-command
+  command: >-
+    --restricted-rpc --public-node --no-igd --no-zmq
+    --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 
+    --rpc-restricted-bind-port=${MONEROD_RPC_PORT} --confirm-external-bind
+    --prune-blockchain
+
+x-tor-service: &tor-service
+  tor:
+    container_name: tor
+    image: vdo1138/tor-hidden-service:${TOR_TAG}
+    links:
+      - monerod
+    environment:
+      MONEROD_TOR_SERVICE_HOSTS: "${TOR_HTTP_PORT}:monerod:${MONEROD_RPC_PORT}"
+    volumes:
+      - tor-keys:/var/lib/tor/hidden_service/
+
+x-explorer-service: &explorer-service
+  explorer:
+    image: sethsimmons/xmrblocks:latest
+    container_name: explorer
+    restart: unless-stopped
+    volumes:
+      - monerod-data:/home/monero/.bitmonero
+    ports:
+      - ${EXPLORER_PORT}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefix(`/explorer`) )"
+      - "traefik.http.routers.explorer.entrypoints=websecure"
+      - "traefik.http.routers.explorer.tls"
+      - "traefik.http.routers.explorer.service=explorer"
+      - "traefik.http.services.explorer.loadbalancer.server.port=${EXPLORER_PORT}"
+      # - "traefik.http.routers.explorer.tls.certresolver=le" #!le
+
+x-watchtower-service: &watchtower-service
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - com.centurylinklabs.watchtower.enable="false"
+    command: --interval 360 --include-stopped
+
+services:
+  traefik:
+    image: traefik:${TRAEFIK_TAG}
+    container_name: traefik
+    ports:
+      - ${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}
+      - ${TRAEFIK_TLS_PORT}:${TRAEFIK_TLS_PORT}
+    volumes:
+      # - "./letsencrypt:/letsencrypt" #!le
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    <<: *traefik-command-nole #!traefik-command
+    restart: always
+  monerod:
+    container_name: monerod
+    image: sethsimmons/simple-monerod:${MONEROD_TAG}
+    <<: *monerod-mainnet-command #!monerod-command
+    ports:
+      - "${MONEROD_P2P_PORT}:${MONEROD_P2P_PORT}" # Exposes P2P port
+      - "${MONEROD_RPC_PORT}"
+    volumes:
+      - "monerod-data:/home/monero/.bitmonero"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`))"
+      - "traefik.http.routers.monerod.entrypoints=websecure"
+      - "traefik.http.routers.monerod.tls"
+      - "traefik.http.routers.monerod.service=monerod"
+      - "traefik.http.services.monerod.loadbalancer.server.port=${MONEROD_RPC_PORT}"
+      # - "traefik.http.routers.monerod.tls.certresolver=le" #!le
+      # - "traefik.http.middlewares.corsheader.headers.accessControlAllowOriginList=${MONEROD_accessControlAllowOriginList}" #!cors
+      # - "traefik.http.routers.monerod.middlewares=corsheader" #!cors
+    restart: unless-stopped
+
+  # <<: *tor-service #!tor
+  # <<: *explorer-service #!explorer
+  # <<: *watchtower-service #!watchtower
+volumes:
+  monerod-data: {}
+  # tor-keys: {} #!tor
