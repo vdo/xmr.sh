@@ -60,7 +60,7 @@ StatInfo="${OnBlack}${White}"
 ################################################################
 VERSION="v0.1.0"
 XMRSH_DIR="/opt/xmr.sh"
-XMRSH_BRANCH="master"
+XMRSH_BRANCH="main"
 XMRSH_URL="https://github.com/vdo/xmr.sh"
 XMRSH_LOG_FILE="/tmp/xmr.sh-$(date +%Y%m%d-%H%M%S).log"
 DOCKER_INSTALLED=false

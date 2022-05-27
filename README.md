@@ -11,11 +11,11 @@ Tested in:
 
 ## ToDo
 
-- [ ] Add wizard for DNS domain selection.
-- [ ] Status and node info at finish.
+- [x] Add wizard for DNS domain selection.
+- [x] Status and node info at finish.
 - [ ] Stagenet / Testnet selection
 - [ ] Clearnet TLS port selection
-- [ ] Make tor service optional
-- [ ] (Optional) block explorer
+- [x] Make tor service optional
+- [x] (Optional) block explorer
 - [ ] Grafana with stats
 - [ ] Add monerod-proxy
