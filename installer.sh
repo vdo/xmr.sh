@@ -60,12 +60,16 @@ StatInfo="${OnBlack}${White}"
 ################################################################
 VERSION="v0.1.0"
 XMRSH_DIR="/opt/xmr.sh"
+XMRSH_BRANCH="master"
+XMRSH_URL="https://github.com/vdo/xmr.sh"
 XMRSH_LOG_FILE="/tmp/xmr.sh-$(date +%Y%m%d-%H%M%S).log"
 DOCKER_INSTALLED=false
 DOCKER_COMPOSE_INSTALLED=false
 DOCKER_COMPOSE_VERSION="v2.5.0"
 DEPENDENCIES="git curl"
 ONION="Not Available"
+TLS_DOMAIN=""
+TLS_EMAIL=""
 
 ################################################################
 # Functions                                                    #
@@ -92,9 +96,10 @@ detect_root() {
 
 check_deps() {
     echo -ne "${OkBullet}Checking and installing dependencies... ${Off}"
+    # shellcheck disable=SC2068
     for pkg in ${DEPENDENCIES[@]}; do
-        if ! which ${pkg} >>"${XMRSH_LOG_FILE}" 2>&1; then
-            install_pkg ${pkg}
+        if ! command -v "${pkg}" >>"${XMRSH_LOG_FILE}" 2>&1; then
+            install_pkg "${pkg}"
             check_return $?
         fi
     done
@@ -105,9 +110,9 @@ install_pkg() {
     # This detects both ubuntu and debian
     if grep -q "debian" /etc/os-release; then
         apt-get update >>"${XMRSH_LOG_FILE}" 2>&1
-        apt-get install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
+        apt-get install -y "$1" >>"${XMRSH_LOG_FILE}" 2>&1
     elif grep -q "fedora" /etc/os-release || grep -q "centos" /etc/os-release; then
-        dnf install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
+        dnf install -y "$1" >>"${XMRSH_LOG_FILE}" 2>&1
     else
         echo -e "${ErrBullet}Cannot detect your distribution package manager.${Off}"
         exit 1
@@ -174,7 +179,7 @@ install_docker_compose() {
 install_xmrsh() {
     echo -ne "${OkBullet}Installing xmr.sh... ${Off}"
     if [ ! -d "$XMRSH_DIR" ]; then
-        git clone https://github.com/vdo/xmr.sh "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+        git clone -b "${XMRSH_BRANCH}" "${XMRSH_URL}" "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
         check_return $?
     else
         echo -e "${Ok}"
@@ -185,35 +190,41 @@ install_xmrsh() {
 }
 
 read_tls_domain() {
-    echo -e "${OkBullet}Enter the desired domain for the SSL certificate."
-    read -e -p "   Leave empty to use a self signed certificate []: " TLS_DOMAIN
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
-    if [ ! -z ${TLS_DOMAIN} ]; then
+    echo -e "${OkBullet}Enter the desired domain for the Let's Encrypt SSL certificate."
+    read -r -e -p "   Leave empty to use a self signed certificate []: " TLS_DOMAIN
+    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
+    if [ -n "${TLS_DOMAIN}" ]; then
         while ! echo "${TLS_DOMAIN}" | grep -qP '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'; do
             echo -e "${WarnBullet}Domain not valid."
-            read -p "   Enter again your desired domain []: " TLS_DOMAIN
+            read -r -p "   Enter again your desired domain []: " TLS_DOMAIN
         done
-        # Email needed TRAEFIK_ACME_EMAIL
-
+        echo -e "${OkBullet}Enter the desired email for the Let's Encrypt SSL certificate."
+        read -r -e -p "   Enter a valid email. Let's Encrypt validates it! []: " TLS_DOMAIN
+        while ! echo "${TLS_EMAIL}" | grep -qP '^[A-Za-z0-9+._-]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}$'; do
+            echo -e "${WarnBullet}Email not valid."
+            read -r -p "   Enter again your desired email []: " TLS_EMAIL
+        done
+        # Set domain and email address in vars
         sed -i "s/DOMAIN=.*/DOMAIN=${TLS_DOMAIN}/g" .env
-        cp docker-compose.le.yml docker-compose.yml
-    else
-        cp docker-compose.nole.yml docker-compose.yml
+        sed -i "s/TRAEFIK_ACME_EMAIL=.*/TRAEFIK_ACME_EMAIL=${TLS_EMAIL}/g" .env
+        # Enable LE settings in compose
+        sed -i '/#!le/s/# //g' docker-compose.template.yml
+        sed -i "/#\!traefik-command/s/\*traefik-command-nole/\*traefik-command-le/g" docker-compose.template.yml
     fi
 }
 
-get_public_ip() {
-    # Using dig:
-    # dig +short txt ch whoami.cloudflare @1.0.0.1
-    PUBLIC_IP=$(curl -s ifconfig.co)
-}
+# get_public_ip() {
+#     # Using dig:
+#     # dig +short txt ch whoami.cloudflare @1.0.0.1
+#     PUBLIC_IP=$(curl -s ifconfig.co)
+# }
 
 validate_domain() {
     echo "$1" | grep -P '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'
 }
 
 start_xmrsh() {
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
     echo -ne "${OkBullet}Starting monero node... ${Off}"
     docker-compose pull >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
@@ -223,7 +234,7 @@ start_xmrsh() {
 }
 
 start_xmrsh_tor() {
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
     echo -ne "${OkBullet}Starting tor hidden service... ${Off}"
     docker-compose -f docker-compose.yml -f docker-compose.tor.yml up -d >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
@@ -244,7 +255,7 @@ completed() {
     echo -e "${OkBullet}Deployment complete.${Off}"
     echo
     echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
-    if [ ! -z "$TLS_DOMAIN" ]; then
+    if [ -n "$TLS_DOMAIN" ]; then
         echo -e " ${Red}│${Stat} URL: ${StatInfo}${TLS_DOMAIN}:443"
     fi
     echo -e " ${Red}│${Stat} Public IP: ${StatInfo}$(curl -s ifconfig.co 2>>"${XMRSH_LOG_FILE}"):443"
