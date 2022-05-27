@@ -55,13 +55,15 @@ x-explorer-service: &explorer-service
       - ${EXPLORER_PORT}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.explorer.rule=(PathPrefix(`/explorer`) )" #!nole
-      # - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefix(`/explorer`) )" #!le
+      - "traefik.http.routers.explorer.rule=(PathPrefixStrip(`/explorer`) )" #!nole
+      # - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefixStrip(`/explorer`) )" #!le
+      # - "traefik.http.routers.explorer.tls.certresolver=le" #!le
+      - "traefik.http.middlewares.stripprefix.stripprefix.prefixes=/explorer"
+      - "traefik.http.routers.explorer.middlewares=stripprefix"
       - "traefik.http.routers.explorer.entrypoints=websecure"
       - "traefik.http.routers.explorer.tls"
       - "traefik.http.routers.explorer.service=explorer"
       - "traefik.http.services.explorer.loadbalancer.server.port=${EXPLORER_PORT}"
-      # - "traefik.http.routers.explorer.tls.certresolver=le" #!le
 
 x-watchtower-service: &watchtower-service
   watchtower:
@@ -97,12 +99,12 @@ services:
     labels:
       - "traefik.enable=true"
       # - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`) && PathPrefix(`/`))" #!le
+      # - "traefik.http.routers.monerod.tls.certresolver=le" #!le
       - "traefik.http.routers.monerod.rule=(PathPrefix(`/`))" #!nole
       - "traefik.http.routers.monerod.entrypoints=websecure"
       - "traefik.http.routers.monerod.tls"
       - "traefik.http.routers.monerod.service=monerod"
       - "traefik.http.services.monerod.loadbalancer.server.port=${MONEROD_RPC_PORT}"
-      # - "traefik.http.routers.monerod.tls.certresolver=le" #!le
       # - "traefik.http.middlewares.corsheader.headers.accessControlAllowOriginList=${MONEROD_accessControlAllowOriginList}" #!cors
       # - "traefik.http.routers.monerod.middlewares=corsheader" #!cors
     restart: unless-stopped
