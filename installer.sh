@@ -16,26 +16,6 @@ Purple='\033[0;35m' # Purple
 Cyan='\033[0;36m'   # Cyan
 White='\033[0;37m'  # White
 
-# Bold
-BBlack='\033[1;30m'  # Black
-BRed='\033[1;31m'    # Red
-BGreen='\033[1;32m'  # Green
-BYellow='\033[1;33m' # Yellow
-BBlue='\033[1;34m'   # Blue
-BPurple='\033[1;35m' # Purple
-BCyan='\033[1;36m'   # Cyan
-BWhite='\033[1;37m'  # White
-
-# Underline
-UBlack='\033[4;30m'  # Black
-URed='\033[4;31m'    # Red
-UGreen='\033[4;32m'  # Green
-UYellow='\033[4;33m' # Yellow
-UBlue='\033[4;34m'   # Blue
-UPurple='\033[4;35m' # Purple
-UCyan='\033[4;36m'   # Cyan
-UWhite='\033[4;37m'  # White
-
 # Background
 On_Black='\033[40m'  # Black
 On_Red='\033[41m'    # Red
@@ -46,14 +26,14 @@ On_Purple='\033[45m' # Purple
 On_Cyan='\033[46m'   # Cyan
 On_White='\033[47m'  # White
 
-OkBullet="${OnBlack}${Green}:: ${White}"
-WarnBullet="${OnBlack}${Yellow}:: ${White}"
-ErrBullet="${OnBlack}${Red}:: ${White}"
-Ok="${OnBlack}${Green} ok.${Off}"
-Fail="${OnBlack}${Red} failed!${Off}"
-Nok="${OnBlack}${Yellow} nok.${Off}"
-Stat="${OnBlack}${Purple}"
-StatInfo="${OnBlack}${White}"
+OkBullet="${Green}${On_Black}:: ${White}${On_Black}"
+WarnBullet="${Yellow}${On_Black}:: ${White}${On_Black}"
+ErrBullet="${Red}${On_Black}:: ${White}${On_Black}"
+Ok="${Green}${On_Black} ok.${Off}"
+Fail="${Red}${On_Black} failed!${Off}"
+Nok="${Yellow}${On_Black} nok.${Off}"
+Stat="${Purple}${On_Black}"
+StatInfo="${White}${On_Black}"
 
 ################################################################
 # Vars                                                         #
@@ -77,7 +57,7 @@ TLS_EMAIL=""
 ################################################################
 
 header() {
-    echo -e "${OnBlack}${Red}                         _     "
+    echo -e "${Red}${On_Black}                         _     "
     echo -e "__  ___ __ ___  _ __ ___| |__  "
     echo -e "\ \/ / '_ ' _ \| '__/ __| '_ \ "
     echo -e " >  <| | | | | | | _\__ \ | | |"
@@ -310,13 +290,27 @@ check_return() {
 
 completed() {
     echo -e "${OkBullet}Deployment complete.${Off}"
+    PUBLIC_IP=$(curl -s ifconfig.co 2>>"${XMRSH_LOG_FILE}")
+    if [ -n "$TLS_DOMAIN" ]; then
+        HOST="${TLS_DOMAIN}"
+    else
+        HOST="${PUBLIC_IP}"
+    fi
+    if [ "$TLS_PORT" = "443" ]; then
+        PORT_SUFF=""
+    else
+        PORT_SUFF=":${TLS_PORT}"
+    fi
     echo
     echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
-    if [ -n "$TLS_DOMAIN" ]; then
-        echo -e " ${Red}│${Stat} URL: ${StatInfo}${TLS_DOMAIN}:${TLS_PORT}"
+    echo -e " ${Red}│${Stat} URL: ${StatInfo}https://${HOST}${PORT_SUFF}"
+    if [ "$ENABLE_EXPLORER" = true ]; then
+        echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
     fi
-    echo -e " ${Red}│${Stat} Public IP: ${StatInfo}$(curl -s ifconfig.co 2>>"${XMRSH_LOG_FILE}"):${TLS_PORT}"
-    echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
+    echo -e " ${Red}│${Stat} Public IP: ${StatInfo}${PUBLIC_IP}"
+    if [ "$ENABLE_TOR" = true ]; then
+        echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
+    fi
     echo -e " ${Red}│"
     echo
 }
