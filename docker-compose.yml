@@ -55,7 +55,8 @@ x-explorer-service: &explorer-service
       - ${EXPLORER_PORT}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefix(`/explorer`) )"
+      - "traefik.http.routers.explorer.rule=(PathPrefix(`/explorer`) )" #!nole
+      # - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefix(`/explorer`) )" #!le
       - "traefik.http.routers.explorer.entrypoints=websecure"
       - "traefik.http.routers.explorer.tls"
       - "traefik.http.routers.explorer.service=explorer"
@@ -95,7 +96,8 @@ services:
       - "monerod-data:/home/monero/.bitmonero"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`))"
+      # - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`) && PathPrefix(`/`))" #!le
+      - "traefik.http.routers.monerod.rule=(PathPrefix(`/`))" #!nole
       - "traefik.http.routers.monerod.entrypoints=websecure"
       - "traefik.http.routers.monerod.tls"
       - "traefik.http.routers.monerod.service=monerod"

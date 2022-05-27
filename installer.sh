@@ -200,7 +200,7 @@ configure_tls_domain() {
             read -r -p "   Enter again your desired domain []: " TLS_DOMAIN
         done
         echo -e "${OkBullet}Enter the desired email for the Let's Encrypt SSL certificate."
-        read -r -e -p "   Enter a valid email. Let's Encrypt validates it! []: " TLS_DOMAIN
+        read -r -e -p "   Enter a valid email. Let's Encrypt validates it! []: " TLS_EMAIL
         while ! echo "${TLS_EMAIL}" | grep -qP '^[A-Za-z0-9+._-]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}$'; do
             echo -e "${WarnBullet}Email not valid."
             read -r -p "   Enter again your desired email []: " TLS_EMAIL
@@ -210,6 +210,7 @@ configure_tls_domain() {
         sed -i "s/TRAEFIK_ACME_EMAIL=.*/TRAEFIK_ACME_EMAIL=${TLS_EMAIL}/g" .env
         # Enable LE settings in compose
         sed -i '/#!le/s/# //g' docker-compose.yml
+        sed -i '/#!nole/s/- /# - /g' docker-compose.yml
         sed -i "/#\!traefik-command/s/\*traefik-command-nole/\*traefik-command-le/g" docker-compose.yml
     fi
 }
@@ -292,8 +293,7 @@ start_xmrsh() {
     check_return $?
     docker-compose up -d >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
-
-    if ENABLE_TOR = true; then
+    if [ $ENABLE_TOR = true ]; then
         sleep 3
         ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
     fi
