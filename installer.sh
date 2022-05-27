@@ -290,7 +290,7 @@ check_return() {
 
 completed() {
     echo -e "${OkBullet}Deployment complete.${Off}"
-    PUBLIC_IP=$(curl -s ifconfig.co 2>>"${XMRSH_LOG_FILE}")
+    PUBLIC_IP=$(curl -4 -s ifconfig.co 2>>"${XMRSH_LOG_FILE}")
     if [ -n "$TLS_DOMAIN" ]; then
         HOST="${TLS_DOMAIN}"
     else
@@ -311,7 +311,7 @@ completed() {
     if [ "$ENABLE_TOR" = true ]; then
         echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
     fi
-    echo -e " ${Red}│"
+    echo -e " ${Red}│${Off}"
     echo
 }
 

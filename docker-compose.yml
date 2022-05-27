@@ -46,17 +46,19 @@ x-tor-service: &tor-service
 
 x-explorer-service: &explorer-service
   explorer:
-    image: sethsimmons/xmrblocks:latest
+    image: vdo1138/xmrblocks:${EXPLORER_TAG}
     container_name: explorer
     restart: unless-stopped
     volumes:
       - monerod-data:/home/monero/.bitmonero
     ports:
       - ${EXPLORER_PORT}
+    depends_on:
+      - monerod
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.explorer.rule=(PathPrefixStrip(`/explorer`) )" #!nole
-      # - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefixStrip(`/explorer`) )" #!le
+      - "traefik.http.routers.explorer.rule=(PathPrefix(`/explorer`) )" #!nole
+      # - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefix(`/explorer`) )" #!le
       # - "traefik.http.routers.explorer.tls.certresolver=le" #!le
       - "traefik.http.middlewares.stripprefix.stripprefix.prefixes=/explorer"
       - "traefik.http.routers.explorer.middlewares=stripprefix"
