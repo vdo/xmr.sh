@@ -2,7 +2,7 @@
 
 A Monero node installer in a single command
 
-Tested in:
+Tested on:
 
 - Debian 11
 - Ubuntu Focal
@@ -18,4 +18,5 @@ Tested in:
 - [x] Make tor service optional
 - [x] (Optional) block explorer
 - [ ] Grafana with stats
-- [ ] Add monerod-proxy
+- [ ] arm64 support
+- [ ] monerod-proxy support for fallback nodes.

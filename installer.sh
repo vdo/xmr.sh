@@ -38,7 +38,7 @@ StatInfo="${White}${On_Black}"
 ################################################################
 # Vars                                                         #
 ################################################################
-VERSION="v0.1.0"
+VERSION="v0.2.0"
 XMRSH_DIR="/opt/xmr.sh"
 XMRSH_BRANCH="main"
 XMRSH_URL="https://github.com/vdo/xmr.sh"
