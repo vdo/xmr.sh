@@ -16,26 +16,6 @@ Purple='\033[0;35m' # Purple
 Cyan='\033[0;36m'   # Cyan
 White='\033[0;37m'  # White
 
-# Bold
-BBlack='\033[1;30m'  # Black
-BRed='\033[1;31m'    # Red
-BGreen='\033[1;32m'  # Green
-BYellow='\033[1;33m' # Yellow
-BBlue='\033[1;34m'   # Blue
-BPurple='\033[1;35m' # Purple
-BCyan='\033[1;36m'   # Cyan
-BWhite='\033[1;37m'  # White
-
-# Underline
-UBlack='\033[4;30m'  # Black
-URed='\033[4;31m'    # Red
-UGreen='\033[4;32m'  # Green
-UYellow='\033[4;33m' # Yellow
-UBlue='\033[4;34m'   # Blue
-UPurple='\033[4;35m' # Purple
-UCyan='\033[4;36m'   # Cyan
-UWhite='\033[4;37m'  # White
-
 # Background
 On_Black='\033[40m'  # Black
 On_Red='\033[41m'    # Red
@@ -46,30 +26,38 @@ On_Purple='\033[45m' # Purple
 On_Cyan='\033[46m'   # Cyan
 On_White='\033[47m'  # White
 
-OkBullet="${OnBlack}${Green}:: ${White}"
-WarnBullet="${OnBlack}${Yellow}:: ${White}"
-ErrBullet="${OnBlack}${Red}:: ${White}"
-Ok="${OnBlack}${Green} ok.${Off}"
-Fail="${OnBlack}${Red} failed!${Off}"
-Nok="${OnBlack}${Yellow} nok.${Off}"
+OkBullet="${Green}${On_Black}:: ${White}${On_Black}"
+WarnBullet="${Yellow}${On_Black}:: ${White}${On_Black}"
+ErrBullet="${Red}${On_Black}:: ${White}${On_Black}"
+Ok="${Green}${On_Black} ok.${Off}"
+Fail="${Red}${On_Black} failed!${Off}"
+Nok="${Yellow}${On_Black} nok.${Off}"
+Stat="${Purple}${On_Black}"
+StatInfo="${White}${On_Black}"
 
 ################################################################
 # Vars                                                         #
 ################################################################
-VERSION="v0.1.0"
+VERSION="v0.2.0"
 XMRSH_DIR="/opt/xmr.sh"
+XMRSH_BRANCH="main"
+XMRSH_URL="https://github.com/vdo/xmr.sh"
 XMRSH_LOG_FILE="/tmp/xmr.sh-$(date +%Y%m%d-%H%M%S).log"
 DOCKER_INSTALLED=false
 DOCKER_COMPOSE_INSTALLED=false
 DOCKER_COMPOSE_VERSION="v2.5.0"
 DEPENDENCIES="git curl"
+ONION="Not Available"
+TLS_PORT="443"
+TLS_DOMAIN=""
+TLS_EMAIL=""
 
 ################################################################
 # Functions                                                    #
 ################################################################
 
 header() {
-    echo -e "${OnBlack}${Red}                         _     "
+    echo -e "${Red}${On_Black}                         _     "
     echo -e "__  ___ __ ___  _ __ ___| |__  "
     echo -e "\ \/ / '_ ' _ \| '__/ __| '_ \ "
     echo -e " >  <| | | | | | | _\__ \ | | |"
@@ -89,9 +77,10 @@ detect_root() {
 
 check_deps() {
     echo -ne "${OkBullet}Checking and installing dependencies... ${Off}"
+    # shellcheck disable=SC2068
     for pkg in ${DEPENDENCIES[@]}; do
-        if ! which ${pkg} >>"${XMRSH_LOG_FILE}" 2>&1; then
-            install_pkg ${pkg}
+        if ! command -v "${pkg}" >>"${XMRSH_LOG_FILE}" 2>&1; then
+            install_pkg "${pkg}"
             check_return $?
         fi
     done
@@ -102,9 +91,9 @@ install_pkg() {
     # This detects both ubuntu and debian
     if grep -q "debian" /etc/os-release; then
         apt-get update >>"${XMRSH_LOG_FILE}" 2>&1
-        apt-get install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
+        apt-get install -y "$1" >>"${XMRSH_LOG_FILE}" 2>&1
     elif grep -q "fedora" /etc/os-release || grep -q "centos" /etc/os-release; then
-        dnf install -y $1 >>"${XMRSH_LOG_FILE}" 2>&1
+        dnf install -y "$1" >>"${XMRSH_LOG_FILE}" 2>&1
     else
         echo -e "${ErrBullet}Cannot detect your distribution package manager.${Off}"
         exit 1
@@ -145,7 +134,7 @@ detect_docker_compose() {
     fi
 }
 
-install_docker() { (
+install_docker() {
     echo -ne "${OkBullet}Installing docker... ${Off}"
     # Docker Installer as provided in
     curl -fsSL https://get.docker.com -o - | bash >>"${XMRSH_LOG_FILE}" 2>&1
@@ -156,7 +145,7 @@ install_docker() { (
         systemctl start docker >>"${XMRSH_LOG_FILE}" 2>&1
     fi
     echo -e "${Ok}"
-); }
+}
 
 install_docker_compose() {
     echo -ne "${OkBullet}Installing compose... ${Off}"
@@ -171,40 +160,128 @@ install_docker_compose() {
 install_xmrsh() {
     echo -ne "${OkBullet}Installing xmr.sh... ${Off}"
     if [ ! -d "$XMRSH_DIR" ]; then
-        git clone https://github.com/vdo/xmr.sh "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
+        git clone -b "${XMRSH_BRANCH}" "${XMRSH_URL}" "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
         check_return $?
+        pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
     else
         echo -e "${Ok}"
-        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}"
+        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}" #FIXME: This should probably exit
         return
     fi
     echo -e "${Ok}"
 }
 
+configure_tls_domain() {
+    echo -e "${OkBullet}Enter the desired domain for the Let's Encrypt SSL certificate."
+    read -r -e -p "   Leave empty to use a self signed certificate []: " TLS_DOMAIN
+    if [ -n "${TLS_DOMAIN}" ]; then
+        while ! echo "${TLS_DOMAIN}" | grep -qP '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'; do
+            echo -e "${WarnBullet}Domain not valid."
+            read -r -p "   Enter again your desired domain []: " TLS_DOMAIN
+        done
+        echo -e "${OkBullet}Enter the desired email for the Let's Encrypt SSL certificate."
+        read -r -e -p "   Enter a valid email. Let's Encrypt validates it! []: " TLS_EMAIL
+        while ! echo "${TLS_EMAIL}" | grep -qP '^[A-Za-z0-9+._-]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}$'; do
+            echo -e "${WarnBullet}Email not valid."
+            read -r -p "   Enter again your desired email []: " TLS_EMAIL
+        done
+        # Set domain and email address in vars
+        sed -i "s/DOMAIN=.*/DOMAIN=${TLS_DOMAIN}/g" .env
+        sed -i "s/TRAEFIK_ACME_EMAIL=.*/TRAEFIK_ACME_EMAIL=${TLS_EMAIL}/g" .env
+        # Enable LE settings in compose
+        sed -i '/#!le/s/# //g' docker-compose.yml
+        sed -i '/#!nole/s/- /# - /g' docker-compose.yml
+        sed -i "/#\!traefik-command/s/\*traefik-command-nole/\*traefik-command-le/g" docker-compose.yml
+    fi
+}
+
+configure_cors() {
+    echo -e "${OkBullet}Configuring CORS..."
+    while true; do
+        read -r -e -p "   Do you want to enabe CORS headers so the node can be used in webapps? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!cors/s/# //g' docker-compose.yml
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+configure_tor() {
+    echo -e "${OkBullet}Configuring tor..."
+    while true; do
+        read -r -e -p "   Do you want to enable a Tor hidden service? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!tor/s/# //g' docker-compose.yml
+            ENABLE_TOR=true
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+configure_explorer() {
+    echo -e "${OkBullet}Configuring explorer..."
+    while true; do
+        read -r -e -p "   Do you want to enable an explorer service? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!explorer/s/# //g' docker-compose.yml
+            ENABLE_EXPLORER=true
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+configure_watchtower() {
+    echo -e "${OkBullet}Configuring watchtower..."
+    while true; do
+        read -r -e -p "   Do you want to enable automatic updates using watchtower? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!watchtower/s/# //g' docker-compose.yml
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+# get_public_ip() {
+#     # Using dig:
+#     # dig +short txt ch whoami.cloudflare @1.0.0.1
+#     PUBLIC_IP=$(curl -s ifconfig.co)
+# }
+
+validate_domain() {
+    echo "$1" | grep -P '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'
+}
+
 start_xmrsh() {
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
-    cp docker-compose.nole.yml docker-compose.yml ## FIXME: Temporal deploy w/o Let's Encrypt
-    echo -ne "${OkBullet}Starting monero node... ${Off}"
+    echo -ne "${OkBullet}Starting monero node and services... ${Off}"
     docker-compose pull >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
     docker-compose up -d >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
+    if [ $ENABLE_TOR = true ]; then
+        sleep 3
+        ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
+    fi
     echo -e "${Ok}"
-}
-
-start_xmrsh_tor() {
-    pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
-    echo -ne "${OkBullet}Starting tor hidden service... ${Off}"
-    docker-compose -f docker-compose.yml -f docker-compose.tor.yml up -d >>"${XMRSH_LOG_FILE}" 2>&1
-    check_return $?
-    sleep 3
-    ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
-    echo -e "${Ok}"
-    echo -e "${OkBullet}Tor hidden service ready at: ${ONION} ${Off}"
 }
 
 check_return() {
-    if [ $1 -ne 0 ]; then
+    if [ "$1" -ne 0 ]; then
         echo -e "${Fail}"
         echo -e "${ErrBullet}Installation failed. Check the logs in ${XMRSH_LOG_FILE}${Off}"
         exit "$1"
@@ -212,8 +289,30 @@ check_return() {
 }
 
 completed() {
-    # FIXME: Show domain / public IP
-    echo -e "${OkBullet}Deployment complete!!${Off}"
+    echo -e "${OkBullet}Deployment complete.${Off}"
+    PUBLIC_IP=$(curl -4 -s ifconfig.co 2>>"${XMRSH_LOG_FILE}")
+    if [ -n "$TLS_DOMAIN" ]; then
+        HOST="${TLS_DOMAIN}"
+    else
+        HOST="${PUBLIC_IP}"
+    fi
+    if [ "$TLS_PORT" = "443" ]; then
+        PORT_SUFF=""
+    else
+        PORT_SUFF=":${TLS_PORT}"
+    fi
+    echo
+    echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
+    echo -e " ${Red}│${Stat} URL: ${StatInfo}https://${HOST}${PORT_SUFF}"
+    if [ "$ENABLE_EXPLORER" = true ]; then
+        echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
+    fi
+    echo -e " ${Red}│${Stat} Public IP: ${StatInfo}${PUBLIC_IP}"
+    if [ "$ENABLE_TOR" = true ]; then
+        echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
+    fi
+    echo -e " ${Red}│${Off}"
+    echo
 }
 
 header
@@ -232,8 +331,12 @@ if [ $DOCKER_INSTALLED = true ] && [ $DOCKER_COMPOSE_INSTALLED = false ]; then
 fi
 
 install_xmrsh
+configure_tls_domain
+configure_cors
+configure_tor
+configure_explorer
+configure_watchtower
 start_xmrsh
-start_xmrsh_tor
 completed
 
 exit 0
