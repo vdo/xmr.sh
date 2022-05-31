@@ -61,8 +61,8 @@ x-explorer-service: &explorer-service
       - "traefik.http.routers.explorer.rule=(PathPrefix(`/explorer`) )" #!nole
       # - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefix(`/explorer`) )" #!le
       # - "traefik.http.routers.explorer.tls.certresolver=le" #!le
-      - "traefik.http.middlewares.stripprefix.stripprefix.prefixes=/explorer"
-      - "traefik.http.routers.explorer.middlewares=stripprefix"
+      - "traefik.http.middlewares.stripprefix-explorer.stripprefix.prefixes=/explorer"
+      - "traefik.http.routers.explorer.middlewares=stripprefix-explorer"
       - "traefik.http.routers.explorer.entrypoints=websecure"
       - "traefik.http.routers.explorer.tls"
       - "traefik.http.routers.explorer.service=explorer"
@@ -92,8 +92,8 @@ x-grafana-service: &grafana-service
       - "traefik.http.routers.grafana.rule=(PathPrefix(`/grafana`) )" #!nole
       # - "traefik.http.routers.grafana.rule=(Host(`${DOMAIN}`) && PathPrefix(`/grafana`) )" #!le
       # - "traefik.http.routers.grafana.tls.certresolver=le" #!le
-      - "traefik.http.middlewares.stripprefix.stripprefix.prefixes=/grafana"
-      - "traefik.http.routers.grafana.middlewares=stripprefix"
+      - "traefik.http.middlewares.stripprefix-grafana.stripprefix.prefixes=/grafana"
+      - "traefik.http.routers.grafana.middlewares=stripprefix-grafana"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls"
       - "traefik.http.routers.grafana.service=grafana"
