@@ -86,7 +86,7 @@
         {
           "exemplar": true,
           "expr": "monero_info_mainnet",
-          "instant": true,
+          "instant": false,
           "interval": "",
           "legendFormat": "mainnet",
           "refId": "A"
@@ -5363,25 +5363,7 @@
     "list": [
       {
         "allValue": null,
-        "current": {
-          "selected": true,
-          "text": [
-            "0.05",
-            "0.25",
-            "0.5",
-            "0.75",
-            "0.95",
-            "1"
-          ],
-          "value": [
-            "0.05",
-            "0.25",
-            "0.5",
-            "0.75",
-            "0.95",
-            "1"
-          ]
-        },
+        "current": {},
         "datasource": null,
         "definition": "label_values(monero_lastblock_transactions_inputs,quantile)",
         "description": "quantile to filter for in the panels that use distributions",
