@@ -184,12 +184,14 @@ configure_network() {
         "testnet")
             NETWORK="testnet"
             sed -i "s/MONEROD_P2P_PORT=.*/MONEROD_P2P_PORT=28080/g" .env
-            sed -i "'/MONEROD_EXTRA_PARAMS/s/$/ --testnet/g' docker-compose.yml" .env
+            sed -i "/MONEROD_EXTRA_PARAMS/s/$/ --testnet/g" .env
+            break
             ;;
         "stagenet")
             NETWORK="stagenet"
             sed -i "s/MONEROD_P2P_PORT=.*/MONEROD_P2P_PORT=38080/g" .env
-            sed -i "'/MONEROD_EXTRA_PARAMS/s/$/ --stagenet/g' docker-compose.yml" .env
+            sed -i "/MONEROD_EXTRA_PARAMS/s/$/ --stagenet/g" .env
+            break
             ;;
         *) echo "Invalid network choice!" ;;
         esac
@@ -307,7 +309,7 @@ start_xmrsh() {
     check_return $?
     docker-compose up -d >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
-    if [ $ENABLE_TOR = true ]; then
+    if [[ $ENABLE_TOR == true ]]; then
         sleep 3
         ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
     fi
@@ -337,6 +339,7 @@ completed() {
     fi
     echo
     echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
+    echo -e " ${Red}│${Stat} Network: ${StatInfo}${NETWORK}"
     echo -e " ${Red}│${Stat} URL: ${StatInfo}https://${HOST}${PORT_SUFF}"
     if [ "$ENABLE_EXPLORER" = true ]; then
         echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
