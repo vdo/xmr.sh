@@ -13,10 +13,14 @@ Tested on:
 
 - [x] Add wizard for DNS domain selection.
 - [x] Status and node info at finish.
-- [ ] Stagenet / Testnet selection
+- [ ] Mainnet / Stagenet / Testnet selection
+- [ ] Pruning option
 - [ ] Clearnet TLS port selection
+- [ ] Uninstall script
+- [ ] Documentation
 - [x] Make tor service optional
 - [x] (Optional) block explorer
-- [ ] Grafana with stats
-- [ ] arm64 support
+- [ ] Grafana dashboard
+- [ ] arm64 support for all images.
+- [ ] monerod-lws support.
 - [ ] monerod-proxy support for fallback nodes.

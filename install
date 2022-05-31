@@ -48,9 +48,10 @@ DOCKER_COMPOSE_INSTALLED=false
 DOCKER_COMPOSE_VERSION="v2.5.0"
 DEPENDENCIES="git curl"
 ONION="Not Available"
-TLS_PORT="443"
+TLS_PORT=""
 TLS_DOMAIN=""
 TLS_EMAIL=""
+NETWORK="mainnet"
 
 ################################################################
 # Functions                                                    #
@@ -165,10 +166,34 @@ install_xmrsh() {
         pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
     else
         echo -e "${Ok}"
-        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}" #FIXME: This should probably exit
+        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}" #FIXME: This should exit, when uninstall script ready
         return
     fi
     echo -e "${Ok}"
+}
+
+configure_network() {
+    echo -e "${OkBullet}Select the desired node network (mainnet, testnet, stagenet)"
+    PS3=":: Enter a number: "
+    options=("mainnet" "testnet" "stagenet")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "mainnet")
+            break
+            ;;
+        "testnet")
+            NETWORK="testnet"
+            sed -i "s/MONEROD_P2P_PORT=.*/MONEROD_P2P_PORT=28080/g" .env
+            sed -i "'/MONEROD_EXTRA_PARAMS/s/$/ --testnet/g' docker-compose.yml" .env
+            ;;
+        "stagenet")
+            NETWORK="stagenet"
+            sed -i "s/MONEROD_P2P_PORT=.*/MONEROD_P2P_PORT=38080/g" .env
+            sed -i "'/MONEROD_EXTRA_PARAMS/s/$/ --stagenet/g' docker-compose.yml" .env
+            ;;
+        *) echo "Invalid network choice!" ;;
+        esac
+    done
 }
 
 configure_tls_domain() {
@@ -195,10 +220,23 @@ configure_tls_domain() {
     fi
 }
 
+configure_tls_port() {
+    echo -e "${OkBullet}Enter the desired TLS/HTTPS port."
+    read -r -e -p "   Leave empty to use the default [443]: " TLS_PORT
+    if [ -n "${TLS_PORT}" ]; then
+        while ! echo "${TLS_PORT}" | grep -qP '^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$'; do
+            echo -e "${WarnBullet}Port not valid."
+            read -r -p "   Enter again your desired port: " TLS_PORT
+        done
+        # Set port in vars
+        sed -i "s/TRAEFIK_TLS_PORT=.*/TRAEFIK_TLS_PORT=${TLS_PORT}/g" .env
+    fi
+}
+
 configure_cors() {
     echo -e "${OkBullet}Configuring CORS..."
     while true; do
-        read -r -e -p "   Do you want to enabe CORS headers so the node can be used in webapps? [y/n]: " yn
+        read -r -e -p "   Do you want to enabe CORS headers so the node can be used in web apps? [y/n]: " yn
         case $yn in
         [Yy]*)
             sed -i '/#!cors/s/# //g' docker-compose.yml
@@ -262,10 +300,6 @@ configure_watchtower() {
 #     # dig +short txt ch whoami.cloudflare @1.0.0.1
 #     PUBLIC_IP=$(curl -s ifconfig.co)
 # }
-
-validate_domain() {
-    echo "$1" | grep -P '(?=^.{5,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'
-}
 
 start_xmrsh() {
     echo -ne "${OkBullet}Starting monero node and services... ${Off}"
@@ -331,11 +365,17 @@ if [ $DOCKER_INSTALLED = true ] && [ $DOCKER_COMPOSE_INSTALLED = false ]; then
 fi
 
 install_xmrsh
+configure_network
 configure_tls_domain
+configure_tls_port
+# configure_pruning
 configure_cors
+
 configure_tor
 configure_explorer
 configure_watchtower
+# configure_monitor
+# configure_lws
 start_xmrsh
 completed
 

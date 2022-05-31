@@ -26,12 +26,12 @@ x-traefik-command-nole: &traefik-command-nole
     - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
     - "--entrypoints.websecure.address=:${TRAEFIK_TLS_PORT}"
 
-x-monerod-mainnet-command: &monerod-mainnet-command
+x-monerod-command: &monerod-command
   command: >-
     --restricted-rpc --public-node --no-igd --no-zmq
     --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 
     --rpc-restricted-bind-port=${MONEROD_RPC_PORT} --confirm-external-bind
-    --prune-blockchain
+    ${MONEROD_EXTRA_PARAMS}
 
 x-tor-service: &tor-service
   tor:
@@ -92,7 +92,7 @@ services:
   monerod:
     container_name: monerod
     image: sethsimmons/simple-monerod:${MONEROD_TAG}
-    <<: *monerod-mainnet-command #!monerod-command
+    <<: *monerod-command
     ports:
       - "${MONEROD_P2P_PORT}:${MONEROD_P2P_PORT}" # Exposes P2P port
       - "${MONEROD_RPC_PORT}"
