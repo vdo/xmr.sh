@@ -52,6 +52,7 @@ TLS_PORT=""
 TLS_DOMAIN=""
 TLS_EMAIL=""
 NETWORK="mainnet"
+ENABLE_GRAFANA=""
 
 ################################################################
 # Functions                                                    #
@@ -282,6 +283,24 @@ configure_explorer() {
     done
 }
 
+configure_grafana() {
+    echo -e "${OkBullet}Configuring grafana..."
+    while true; do
+        read -r -e -p "   Do you want to enable a grafana monitoring dashboard? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            ENABLE_GRAFANA=true
+            sed -i '/#!monero-exporter/s/# //g' docker-compose.yml
+            sed -i '/#!grafana/s/# //g' docker-compose.yml
+            sed -i '/#!prometheus/s/# //g' docker-compose.yml
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
 configure_watchtower() {
     echo -e "${OkBullet}Configuring watchtower..."
     while true; do
@@ -341,13 +360,18 @@ completed() {
     echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
     echo -e " ${Red}│${Stat} Network: ${StatInfo}${NETWORK}"
     echo -e " ${Red}│${Stat} URL: ${StatInfo}https://${HOST}${PORT_SUFF}"
-    if [ "$ENABLE_EXPLORER" = true ]; then
-        echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
-    fi
+
     echo -e " ${Red}│${Stat} Public IP: ${StatInfo}${PUBLIC_IP}"
     if [ "$ENABLE_TOR" = true ]; then
         echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
     fi
+    if [ "$ENABLE_EXPLORER" = true ]; then
+        echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
+    fi
+    if [ "$ENABLE_GRAFANA" = true ]; then
+        echo -e " ${Red}│${Stat} Grafana URL: ${StatInfo}https://${HOST}${PORT_SUFF}/grafana"
+    fi
+    echo -e " ${Red}│${Stat} Project installed in: ${StatInfo}${XMRSH_DIR}"
     echo -e " ${Red}│${Off}"
     echo
 }
@@ -377,7 +401,7 @@ configure_cors
 configure_tor
 configure_explorer
 configure_watchtower
-# configure_monitor
+configure_grafana
 # configure_lws
 start_xmrsh
 completed

@@ -28,9 +28,10 @@ x-traefik-command-nole: &traefik-command-nole
 
 x-monerod-command: &monerod-command
   command: >-
-    --restricted-rpc --public-node --no-igd --no-zmq
+    --public-node --no-igd --no-zmq
     --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 
-    --rpc-restricted-bind-port=${MONEROD_RPC_PORT} --confirm-external-bind
+    --rpc-restricted-bind-port=${MONEROD_RESTRICTED_RPC_PORT} --confirm-external-bind
+    --rpc-bind-port=${MONEROD_RPC_PORT} --rpc-bind-ip=0.0.0.0
     ${MONEROD_EXTRA_PARAMS}
 
 x-tor-service: &tor-service
@@ -40,7 +41,7 @@ x-tor-service: &tor-service
     links:
       - monerod
     environment:
-      MONEROD_TOR_SERVICE_HOSTS: "${TOR_HTTP_PORT}:monerod:${MONEROD_RPC_PORT}"
+      MONEROD_TOR_SERVICE_HOSTS: "${TOR_HTTP_PORT}:monerod:${MONEROD_RESTRICTED_RPC_PORT}"
     volumes:
       - tor-keys:/var/lib/tor/hidden_service/
 
@@ -73,7 +74,6 @@ x-monero-exporter-service: &monero-exporter-service
       - --monero-addr=http://monerod:${MONEROD_RPC_PORT}
     container_name: monero-exporter
     image: utxobr/monero-exporter@sha256:737413b1054583535e835e1417b61a8d59a4c08723e4a15c61c4249c2a7d69a4
-    network_mode: service:monerod
 
 x-grafana-service: &grafana-service
   grafana:
@@ -101,6 +101,7 @@ x-grafana-service: &grafana-service
 
 x-prometheus-service: &prometheus-service
   prometheus:
+    user: root
     command:
       - --config.file=/etc/prometheus/config.yaml
       - --storage.tsdb.path=/data
@@ -139,7 +140,6 @@ services:
     <<: *monerod-command
     ports:
       - "${MONEROD_P2P_PORT}:${MONEROD_P2P_PORT}" # Exposes P2P port
-      - "${MONEROD_RPC_PORT}"
     volumes:
       - "monerod-data:/home/monero/.bitmonero"
     labels:
@@ -150,21 +150,19 @@ services:
       - "traefik.http.routers.monerod.entrypoints=websecure"
       - "traefik.http.routers.monerod.tls"
       - "traefik.http.routers.monerod.service=monerod"
-      - "traefik.http.services.monerod.loadbalancer.server.port=${MONEROD_RPC_PORT}"
+      - "traefik.http.services.monerod.loadbalancer.server.port=${MONEROD_RESTRICTED_RPC_PORT}"
       # - "traefik.http.middlewares.corsheader.headers.accessControlAllowOriginList=${MONEROD_accessControlAllowOriginList}" #!cors
       # - "traefik.http.routers.monerod.middlewares=corsheader" #!cors
     restart: unless-stopped
 
   # <<: *tor-service #!tor
   # <<: *explorer-service #!explorer
-  <<: *monero-exporter-service #!monero-exporter
-
-  <<: *grafana-service #!grafana
-
-  <<: *prometheus-service #!prometheus
+  # <<: *monero-exporter-service #!monero-exporter
+  # <<: *grafana-service #!grafana
+  # <<: *prometheus-service #!prometheus
   # <<: *watchtower-service #!watchtower
 
 volumes:
   monerod-data: {}
   # tor-keys: {} #!tor
-  prometheus-data: {} #!prometheus
+  # prometheus-data: {} #!prometheus
