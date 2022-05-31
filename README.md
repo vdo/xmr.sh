@@ -13,9 +13,9 @@ Tested on:
 
 - [x] Add wizard for DNS domain selection.
 - [x] Status and node info at finish.
-- [ ] Mainnet / Stagenet / Testnet selection
+- [x] Mainnet / Stagenet / Testnet selection
 - [ ] Pruning option
-- [ ] Clearnet TLS port selection
+- [x] Clearnet TLS port selection
 - [ ] Uninstall script
 - [ ] Documentation
 - [x] Make tor service optional
@@ -23,4 +23,4 @@ Tested on:
 - [ ] Grafana dashboard
 - [ ] arm64 support for all images.
 - [ ] monerod-lws support.
-- [ ] monerod-proxy support for fallback nodes.
+- [ ] monerod-proxy support.
