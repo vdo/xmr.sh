@@ -38,7 +38,7 @@ StatInfo="${White}${On_Black}"
 ################################################################
 # Vars                                                         #
 ################################################################
-VERSION="v0.3.0"
+VERSION="v0.3.1"
 XMRSH_DIR="/opt/xmr.sh"
 XMRSH_BRANCH="main"
 XMRSH_URL="https://github.com/vdo/xmr.sh"
@@ -295,10 +295,7 @@ configure_grafana() {
             sed -i '/#!monero-exporter/s/# //g' docker-compose.yml
             sed -i '/#!grafana/s/# //g' docker-compose.yml
             sed -i '/#!prometheus/s/# //g' docker-compose.yml
-            GRAFANA_PASSWORD="$(
-                tr </dev/urandom -dc _A-Z-a-z-0-9 | head -c"${1:-12}"
-                echo
-            )"
+            GRAFANA_PASSWORD="$(openssl rand -base64 9)"
             sed -i "s/GF_SECURITY_ADMIN_PASSWORD=.*/GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}/g" .env
             break
             ;;
