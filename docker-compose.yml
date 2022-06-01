@@ -43,7 +43,7 @@ x-tor-service: &tor-service
     environment:
       MONEROD_TOR_SERVICE_HOSTS: "${TOR_HTTP_PORT}:monerod:${MONEROD_RESTRICTED_RPC_PORT}"
     volumes:
-      - tor-keys:/var/lib/tor/hidden_service/
+      - ./data/tor:/var/lib/tor/hidden_service/
 
 x-explorer-service: &explorer-service
   explorer:
@@ -51,7 +51,7 @@ x-explorer-service: &explorer-service
     container_name: explorer
     restart: unless-stopped
     volumes:
-      - monerod-data:/home/monero/.bitmonero
+      - ./data/monero:/home/monero/.bitmonero
     ports:
       - ${EXPLORER_PORT}
     depends_on:
@@ -77,6 +77,7 @@ x-monero-exporter-service: &monero-exporter-service
 
 x-grafana-service: &grafana-service
   grafana:
+    user: "1000"
     command:
       - -config=/etc/grafana/grafana.ini
     container_name: grafana
@@ -84,6 +85,7 @@ x-grafana-service: &grafana-service
     ports:
       - 3000
     volumes:
+      - ./data/grafana:/var/lib/grafana
       - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -103,7 +105,7 @@ x-grafana-service: &grafana-service
 
 x-prometheus-service: &prometheus-service
   prometheus:
-    user: root # root user needed to use an external volume
+    user: "1000"
     command:
       - --config.file=/etc/prometheus/config.yaml
       - --storage.tsdb.path=/data
@@ -111,7 +113,7 @@ x-prometheus-service: &prometheus-service
     container_name: prometheus
     image: bitnami/prometheus:${PROMETHEUS_TAG}
     volumes:
-      - prometheus-data:/data
+      - ./data/prometheus:/data
       - ./config/prometheus/config.yaml:/etc/prometheus/config.yaml:ro
 
 x-watchtower-service: &watchtower-service
@@ -132,7 +134,7 @@ services:
       - ${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}
       - ${TRAEFIK_TLS_PORT}:${TRAEFIK_TLS_PORT}
     volumes:
-      # - "./letsencrypt:/letsencrypt" #!le
+      - "./data/letsencrypt:/letsencrypt" #!le
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     <<: *traefik-command-nole #!traefik-command
     restart: always
@@ -143,7 +145,7 @@ services:
     ports:
       - "${MONEROD_P2P_PORT}:${MONEROD_P2P_PORT}" # Exposes P2P port
     volumes:
-      - "monerod-data:/home/monero/.bitmonero"
+      - "./data/monero:/home/monero/.bitmonero"
     labels:
       - "traefik.enable=true"
       # - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`) && PathPrefix(`/`))" #!le
@@ -163,8 +165,3 @@ services:
   # <<: *grafana-service #!grafana
   # <<: *prometheus-service #!prometheus
   # <<: *watchtower-service #!watchtower
-
-volumes:
-  monerod-data: {}
-  # tor-keys: {} #!tor
-  # prometheus-data: {} #!prometheus
