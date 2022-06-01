@@ -101,13 +101,13 @@ x-grafana-service: &grafana-service
 
 x-prometheus-service: &prometheus-service
   prometheus:
-    user: root
+    #user: root
     command:
       - --config.file=/etc/prometheus/config.yaml
       - --storage.tsdb.path=/data
       - --storage.tsdb.retention.time=30d
     container_name: prometheus
-    image: prom/prometheus:${PROMETHEUS_TAG}
+    image: bitnami/prometheus:${PROMETHEUS_TAG}
     volumes:
       - prometheus-data:/data
       - ./config/prometheus/config.yaml:/etc/prometheus/config.yaml:ro
