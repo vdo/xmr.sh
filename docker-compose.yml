@@ -28,9 +28,10 @@ x-traefik-command-nole: &traefik-command-nole
 
 x-monerod-command: &monerod-command
   command: >-
-    --restricted-rpc --public-node --no-igd --no-zmq
+    --public-node --no-igd --no-zmq
     --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 
-    --rpc-restricted-bind-port=${MONEROD_RPC_PORT} --confirm-external-bind
+    --rpc-restricted-bind-port=${MONEROD_RESTRICTED_RPC_PORT} --confirm-external-bind
+    --rpc-bind-port=${MONEROD_RPC_PORT} --rpc-bind-ip=0.0.0.0
     ${MONEROD_EXTRA_PARAMS}
 
 x-tor-service: &tor-service
@@ -40,7 +41,7 @@ x-tor-service: &tor-service
     links:
       - monerod
     environment:
-      MONEROD_TOR_SERVICE_HOSTS: "${TOR_HTTP_PORT}:monerod:${MONEROD_RPC_PORT}"
+      MONEROD_TOR_SERVICE_HOSTS: "${TOR_HTTP_PORT}:monerod:${MONEROD_RESTRICTED_RPC_PORT}"
     volumes:
       - tor-keys:/var/lib/tor/hidden_service/
 
@@ -60,12 +61,58 @@ x-explorer-service: &explorer-service
       - "traefik.http.routers.explorer.rule=(PathPrefix(`/explorer`) )" #!nole
       # - "traefik.http.routers.explorer.rule=(Host(`${DOMAIN}`) && PathPrefix(`/explorer`) )" #!le
       # - "traefik.http.routers.explorer.tls.certresolver=le" #!le
-      - "traefik.http.middlewares.stripprefix.stripprefix.prefixes=/explorer"
-      - "traefik.http.routers.explorer.middlewares=stripprefix"
+      - "traefik.http.middlewares.stripprefix-explorer.stripprefix.prefixes=/explorer"
+      - "traefik.http.routers.explorer.middlewares=stripprefix-explorer"
       - "traefik.http.routers.explorer.entrypoints=websecure"
       - "traefik.http.routers.explorer.tls"
       - "traefik.http.routers.explorer.service=explorer"
       - "traefik.http.services.explorer.loadbalancer.server.port=${EXPLORER_PORT}"
+
+x-monero-exporter-service: &monero-exporter-service
+  monero-exporter:
+    command:
+      - --monero-addr=http://monerod:${MONEROD_RPC_PORT}
+    container_name: monero-exporter
+    image: utxobr/monero-exporter@sha256:737413b1054583535e835e1417b61a8d59a4c08723e4a15c61c4249c2a7d69a4
+
+x-grafana-service: &grafana-service
+  grafana:
+    command:
+      - -config=/etc/grafana/grafana.ini
+    container_name: grafana
+    image: grafana/grafana:${GRAFANA_TAG}
+    ports:
+      - 3000
+    volumes:
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=(PathPrefix(`/grafana`) )" #!nole
+      # - "traefik.http.routers.grafana.rule=(Host(`${DOMAIN}`) && PathPrefix(`/grafana`) )" #!le
+      # - "traefik.http.routers.grafana.tls.certresolver=le" #!le
+      - "traefik.http.middlewares.stripprefix-grafana.stripprefix.prefixes=/grafana"
+      - "traefik.http.routers.grafana.middlewares=stripprefix-grafana"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls"
+      - "traefik.http.routers.grafana.service=grafana"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+x-prometheus-service: &prometheus-service
+  prometheus:
+    user: root # root user needed to use an external volume
+    command:
+      - --config.file=/etc/prometheus/config.yaml
+      - --storage.tsdb.path=/data
+      - --storage.tsdb.retention.time=30d
+    container_name: prometheus
+    image: bitnami/prometheus:${PROMETHEUS_TAG}
+    volumes:
+      - prometheus-data:/data
+      - ./config/prometheus/config.yaml:/etc/prometheus/config.yaml:ro
 
 x-watchtower-service: &watchtower-service
   watchtower:
@@ -95,7 +142,6 @@ services:
     <<: *monerod-command
     ports:
       - "${MONEROD_P2P_PORT}:${MONEROD_P2P_PORT}" # Exposes P2P port
-      - "${MONEROD_RPC_PORT}"
     volumes:
       - "monerod-data:/home/monero/.bitmonero"
     labels:
@@ -106,14 +152,19 @@ services:
       - "traefik.http.routers.monerod.entrypoints=websecure"
       - "traefik.http.routers.monerod.tls"
       - "traefik.http.routers.monerod.service=monerod"
-      - "traefik.http.services.monerod.loadbalancer.server.port=${MONEROD_RPC_PORT}"
+      - "traefik.http.services.monerod.loadbalancer.server.port=${MONEROD_RESTRICTED_RPC_PORT}"
       # - "traefik.http.middlewares.corsheader.headers.accessControlAllowOriginList=${MONEROD_accessControlAllowOriginList}" #!cors
       # - "traefik.http.routers.monerod.middlewares=corsheader" #!cors
     restart: unless-stopped
 
   # <<: *tor-service #!tor
   # <<: *explorer-service #!explorer
+  # <<: *monero-exporter-service #!monero-exporter
+  # <<: *grafana-service #!grafana
+  # <<: *prometheus-service #!prometheus
   # <<: *watchtower-service #!watchtower
+
 volumes:
   monerod-data: {}
   # tor-keys: {} #!tor
+  # prometheus-data: {} #!prometheus

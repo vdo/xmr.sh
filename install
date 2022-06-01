@@ -38,7 +38,7 @@ StatInfo="${White}${On_Black}"
 ################################################################
 # Vars                                                         #
 ################################################################
-VERSION="v0.2.0"
+VERSION="v0.3.0"
 XMRSH_DIR="/opt/xmr.sh"
 XMRSH_BRANCH="main"
 XMRSH_URL="https://github.com/vdo/xmr.sh"
@@ -48,10 +48,11 @@ DOCKER_COMPOSE_INSTALLED=false
 DOCKER_COMPOSE_VERSION="v2.5.0"
 DEPENDENCIES="git curl"
 ONION="Not Available"
-TLS_PORT=""
+TLS_PORT="443"
 TLS_DOMAIN=""
 TLS_EMAIL=""
 NETWORK="mainnet"
+ENABLE_GRAFANA=""
 
 ################################################################
 # Functions                                                    #
@@ -232,6 +233,8 @@ configure_tls_port() {
         done
         # Set port in vars
         sed -i "s/TRAEFIK_TLS_PORT=.*/TRAEFIK_TLS_PORT=${TLS_PORT}/g" .env
+    else
+        TLS_PORT="443"
     fi
 }
 
@@ -274,6 +277,29 @@ configure_explorer() {
         [Yy]*)
             sed -i '/#!explorer/s/# //g' docker-compose.yml
             ENABLE_EXPLORER=true
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
+configure_grafana() {
+    echo -e "${OkBullet}Configuring grafana..."
+    while true; do
+        read -r -e -p "   Do you want to enable a grafana monitoring dashboard? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            ENABLE_GRAFANA=true
+            sed -i '/#!monero-exporter/s/# //g' docker-compose.yml
+            sed -i '/#!grafana/s/# //g' docker-compose.yml
+            sed -i '/#!prometheus/s/# //g' docker-compose.yml
+            GRAFANA_PASSWORD="$(
+                tr </dev/urandom -dc _A-Z-a-z-0-9 | head -c"${1:-12}"
+                echo
+            )"
+            sed -i "s/GF_SECURITY_ADMIN_PASSWORD=.*/GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}/g" .env
             break
             ;;
         [Nn]*) break ;;
@@ -332,7 +358,7 @@ completed() {
     else
         HOST="${PUBLIC_IP}"
     fi
-    if [ "$TLS_PORT" = "443" ]; then
+    if [[ $TLS_PORT == "443" ]]; then
         PORT_SUFF=""
     else
         PORT_SUFF=":${TLS_PORT}"
@@ -341,13 +367,20 @@ completed() {
     echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
     echo -e " ${Red}│${Stat} Network: ${StatInfo}${NETWORK}"
     echo -e " ${Red}│${Stat} URL: ${StatInfo}https://${HOST}${PORT_SUFF}"
-    if [ "$ENABLE_EXPLORER" = true ]; then
-        echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
-    fi
+
     echo -e " ${Red}│${Stat} Public IP: ${StatInfo}${PUBLIC_IP}"
     if [ "$ENABLE_TOR" = true ]; then
         echo -e " ${Red}│${Stat} Onion Service: ${StatInfo}$ONION"
     fi
+    if [ "$ENABLE_EXPLORER" = true ]; then
+        echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
+    fi
+    if [ "$ENABLE_GRAFANA" = true ]; then
+        echo -e " ${Red}│${Stat} Grafana URL: ${StatInfo}https://${HOST}${PORT_SUFF}/grafana"
+        echo -e " ${Red}│${Stat} Grafana user: ${StatInfo}admin"
+        echo -e " ${Red}│${Stat} Grafana password: ${StatInfo}${GRAFANA_PASSWORD}"
+    fi
+    echo -e " ${Red}│${Stat} Project files installed in: ${StatInfo}${XMRSH_DIR}"
     echo -e " ${Red}│${Off}"
     echo
 }
@@ -377,7 +410,7 @@ configure_cors
 configure_tor
 configure_explorer
 configure_watchtower
-# configure_monitor
+configure_grafana
 # configure_lws
 start_xmrsh
 completed
