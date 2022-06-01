@@ -34,6 +34,16 @@ XMRSH_LOG_FILE="/tmp/xmr.sh-$(date +%Y%m%d-%H%M%S).log"
 # Functions                                                    #
 ################################################################
 
+check_root() {
+    echo -ne "${OkBullet}Checking root... ${Off}"
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "${Fail}"
+        echo -e "${ErrBullet}You need to run this script as root (UID=0).${Off}"
+        exit 1
+    fi
+    echo -e "${Ok}"
+}
+
 check_return() {
     if [ "$1" -ne 0 ]; then
         echo -e "${Fail}"
@@ -43,20 +53,21 @@ check_return() {
 }
 
 uninstall() {
-    pushd $XMRSH_DIR || check_return $?
+    pushd $XMRSH_DIR >>"${XMRSH_LOG_FILE}" 2>&1 || check_return $?
     echo -e "${OkBullet}Uninstalling xmr.sh..."
-    docker-compose down >>"${XMRSH_LOG_FILE}" 2>&1
+    if [ -f docker-compose.yml ]; then
+        docker-compose down >>"${XMRSH_LOG_FILE}" 2>&1
+    fi
     check_return $?
     while true; do
         read -r -e -p "   Do you want to keep the data directory with the blockchain and other data files? [y/n]: " yn
         case $yn in
         [Yy]*)
-            rm -rf !("data")
+            find . -type f -not -name 'data' -print0 | xargs -0 -I {} rm {}
             check_return $?
             break
             ;;
         [Nn]*)
-            popd || check_return $?
             rm -rf ./*
             check_return $?
             break
@@ -64,7 +75,11 @@ uninstall() {
         *) echo "   Please answer yes or no." ;;
         esac
     done
+    popd || check_return $?
     echo -e "${OkBullet}Uninstall complete."
 }
+
+check_root
+uninstall
 
 exit 0
