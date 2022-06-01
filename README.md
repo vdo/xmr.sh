@@ -17,13 +17,13 @@ Other distributions with docker pre-installed would probably be compatible as we
 - [x] Add wizard for DNS domain selection.
 - [x] Status and node info at finish.
 - [x] Mainnet / Stagenet / Testnet selection
-- [ ] Pruning option
+- [x] Pruning enabled
 - [x] Clearnet TLS port selection
 - [ ] Uninstall script
 - [ ] Documentation
 - [x] Make tor service optional
-- [x] (Optional) block explorer
+- [x] Block explorer (disabled)
 - [x] Grafana dashboard
 - [ ] arm64 support for all images.
-- [ ] monerod-lws support.
+- [ ] monerod-lws support
 - [ ] monerod-proxy support.

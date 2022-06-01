@@ -1,30 +1,20 @@
 #!/bin/bash
 
 ################################################################
-# Color Aliases                                                #
+# Colors                                                       #
 ################################################################
 # Reset
 Off='\033[0m' # Text Reset
 
 # Regular Colors
-Black='\033[0;30m'  # Black
 Red='\033[0;31m'    # Red
 Green='\033[0;32m'  # Green
 Yellow='\033[0;33m' # Yellow
-Blue='\033[0;34m'   # Blue
 Purple='\033[0;35m' # Purple
-Cyan='\033[0;36m'   # Cyan
 White='\033[0;37m'  # White
 
 # Background
-On_Black='\033[40m'  # Black
-On_Red='\033[41m'    # Red
-On_Green='\033[42m'  # Green
-On_Yellow='\033[43m' # Yellow
-On_Blue='\033[44m'   # Blue
-On_Purple='\033[45m' # Purple
-On_Cyan='\033[46m'   # Cyan
-On_White='\033[47m'  # White
+On_Black='\033[40m' # Black
 
 OkBullet="${Green}${On_Black}:: ${White}${On_Black}"
 WarnBullet="${Yellow}${On_Black}:: ${White}${On_Black}"
@@ -32,19 +22,49 @@ ErrBullet="${Red}${On_Black}:: ${White}${On_Black}"
 Ok="${Green}${On_Black} ok.${Off}"
 Fail="${Red}${On_Black} failed!${Off}"
 Nok="${Yellow}${On_Black} nok.${Off}"
-Stat="${Purple}${On_Black}"
-StatInfo="${White}${On_Black}"
 
 ################################################################
 # Vars                                                         #
 ################################################################
 
 XMRSH_DIR="/opt/xmr.sh"
+XMRSH_LOG_FILE="/tmp/xmr.sh-$(date +%Y%m%d-%H%M%S).log"
 
 ################################################################
 # Functions                                                    #
 ################################################################
 
-# TBD
+check_return() {
+    if [ "$1" -ne 0 ]; then
+        echo -e "${Fail}"
+        echo -e "${ErrBullet}Installation failed. Check the logs in ${XMRSH_LOG_FILE}${Off}"
+        exit "$1"
+    fi
+}
+
+uninstall() {
+    pushd $XMRSH_DIR || check_return $?
+    echo -e "${OkBullet}Uninstalling xmr.sh..."
+    docker-compose down >>"${XMRSH_LOG_FILE}" 2>&1
+    check_return $?
+    while true; do
+        read -r -e -p "   Do you want to keep the data directory with the blockchain and other data files? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            rm -rf !("data")
+            check_return $?
+            break
+            ;;
+        [Nn]*)
+            popd || check_return $?
+            rm -rf ./*
+            check_return $?
+            break
+            ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+    echo -e "${OkBullet}Uninstall complete."
+}
 
 exit 0
