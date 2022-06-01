@@ -5364,25 +5364,25 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": null,
-        "definition": "label_values(monero_lastblock_transactions_inputs,quantile)",
-        "description": "quantile to filter for in the panels that use distributions",
-        "error": null,
+        "datasource": "prometheus",
+        "definition": "",
         "hide": 0,
-        "includeAll": true,
-        "label": "quantile",
-        "multi": true,
+        "includeAll": false,
+        "index": -1,
+        "label": "Quantile",
+        "multi": false,
         "name": "quantile",
         "options": [],
-        "query": {
-          "query": "label_values(monero_lastblock_transactions_inputs,quantile)",
-          "refId": "StandardVariableQuery"
-        },
+        "query": "label_values(monero_peerlist_lastseen,quantile)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       }
     ]
   },

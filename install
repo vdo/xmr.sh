@@ -233,6 +233,8 @@ configure_tls_port() {
         done
         # Set port in vars
         sed -i "s/TRAEFIK_TLS_PORT=.*/TRAEFIK_TLS_PORT=${TLS_PORT}/g" .env
+    else
+        TLS_PORT="443"
     fi
 }
 
