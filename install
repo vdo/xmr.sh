@@ -295,6 +295,11 @@ configure_grafana() {
             sed -i '/#!monero-exporter/s/# //g' docker-compose.yml
             sed -i '/#!grafana/s/# //g' docker-compose.yml
             sed -i '/#!prometheus/s/# //g' docker-compose.yml
+            GRAFANA_PASSWORD="$(
+                tr </dev/urandom -dc _A-Z-a-z-0-9 | head -c"${1:-12}"
+                echo
+            )"
+            sed -i "s/GF_SECURITY_ADMIN_PASSWORD=.*/GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}/g" .env
             break
             ;;
         [Nn]*) break ;;
@@ -372,8 +377,10 @@ completed() {
     fi
     if [ "$ENABLE_GRAFANA" = true ]; then
         echo -e " ${Red}│${Stat} Grafana URL: ${StatInfo}https://${HOST}${PORT_SUFF}/grafana"
+        echo -e " ${Red}│${Stat} Grafana user: ${StatInfo}admin"
+        echo -e " ${Red}│${Stat} Grafana password: ${StatInfo}${GRAFANA_PASSWORD}"
     fi
-    echo -e " ${Red}│${Stat} Project installed in: ${StatInfo}${XMRSH_DIR}"
+    echo -e " ${Red}│${Stat} Project files installed in: ${StatInfo}${XMRSH_DIR}"
     echo -e " ${Red}│${Off}"
     echo
 }
