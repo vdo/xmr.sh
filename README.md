@@ -1,13 +1,16 @@
 # xmr.sh
 
-A Monero node installer in a single command
+**xmr.sh** script wizard sets up a new server running a monero node daemon with Docker compose, with your choice of SSL certificates for your domain, network selection, a Tor hidden service, Grafana dashboard and more.
 
-Tested on:
+## Distribution support
+
+Compatible and tested on:
 
 - Debian 11
 - Ubuntu Focal
 - Fedora 36
-- CentOS 10 Stream
+
+Other distributions with docker pre-installed would probably be compatible as well.
 
 ## ToDo
 
@@ -20,7 +23,7 @@ Tested on:
 - [ ] Documentation
 - [x] Make tor service optional
 - [x] (Optional) block explorer
-- [ ] Grafana dashboard
+- [x] Grafana dashboard
 - [ ] arm64 support for all images.
 - [ ] monerod-lws support.
 - [ ] monerod-proxy support.
