@@ -29,6 +29,7 @@ StatInfo="${White}${On_Black}"
 # Vars                                                         #
 ################################################################
 VERSION="v0.3.1"
+XMRSH_INSTALL_CMD="sudo bash -c \"\$(curl  -sLSf https://get.xmr.sh)\""
 XMRSH_DIR="/opt/xmr.sh"
 XMRSH_BRANCH="main"
 XMRSH_URL="https://github.com/vdo/xmr.sh"
@@ -62,6 +63,16 @@ detect_root() {
     if [[ $EUID -ne 0 ]]; then
         echo -e "${Fail}"
         echo -e "${ErrBullet}You need to run this script as root (UID=0).${Off}"
+        exit 1
+    fi
+    echo -e "${Ok}"
+}
+
+detect_pipe() {
+    echo -ne "${OkBullet}Checking script execution... ${Off}"
+    if [ -p /dev/stdin ]; then
+        echo -e "${Fail}"
+        echo -e "${ErrBullet}This script can't be piped! Instead, use the command: ${XMRSH_INSTALL_CMD}${Off}"
         exit 1
     fi
     echo -e "${Ok}"
@@ -155,7 +166,8 @@ install_xmrsh() {
         git clone -b "${XMRSH_BRANCH}" "${XMRSH_URL}" "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1
         check_return $?
         pushd "${XMRSH_DIR}" >>"${XMRSH_LOG_FILE}" 2>&1 || return
-        chown -R "1000:1000" ./data
+        chown -R "1000:1000" ./data >>"${XMRSH_LOG_FILE}" 2>&1
+        check_return $?
     else
         echo -e "${Ok}"
         echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}" #FIXME: This should exit, when uninstall script ready
@@ -375,6 +387,7 @@ completed() {
 
 header
 detect_root
+detect_pipe
 check_deps
 detect_docker
 detect_docker_compose
