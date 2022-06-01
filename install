@@ -298,7 +298,7 @@ configure_grafana() {
             sed -i '/#!monero-exporter/s/# //g' docker-compose.yml
             sed -i '/#!grafana/s/# //g' docker-compose.yml
             sed -i '/#!prometheus/s/# //g' docker-compose.yml
-            GRAFANA_PASSWORD="$(openssl rand -base64 9)"
+            GRAFANA_PASSWORD="$(openssl rand -base64 9 | tr '\/' '-')"
             sed -i "s/GF_SECURITY_ADMIN_PASSWORD=.*/GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}/g" .env
             break
             ;;
@@ -336,7 +336,7 @@ start_xmrsh() {
     docker-compose up -d >>"${XMRSH_LOG_FILE}" 2>&1
     check_return $?
     if [[ $ENABLE_TOR == true ]]; then
-        sleep 3
+        sleep 4
         ONION=$(docker logs tor 2>&1 | grep Entrypoint | cut -d " " -f 8)
     fi
     echo -e "${Ok}"
