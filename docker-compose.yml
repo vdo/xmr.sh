@@ -101,7 +101,7 @@ x-grafana-service: &grafana-service
 
 x-prometheus-service: &prometheus-service
   prometheus:
-    #user: root
+    user: root # root user needed to use an external volume
     command:
       - --config.file=/etc/prometheus/config.yaml
       - --storage.tsdb.path=/data
