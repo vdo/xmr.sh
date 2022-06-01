@@ -170,8 +170,8 @@ install_xmrsh() {
         check_return $?
     else
         echo -e "${Ok}"
-        echo -e "${WarnBullet}Warning: xmr.sh already present in ${XMRSH_DIR}" #FIXME: This should exit, when uninstall script ready
-        return
+        echo -e "${ErrBullet}Error: xmr.sh already present in ${XMRSH_DIR}. Run the uninstall script first."
+        exit 1
     fi
     echo -e "${Ok}"
 }
