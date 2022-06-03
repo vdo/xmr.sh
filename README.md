@@ -12,6 +12,14 @@ Compatible and tested on:
 
 Other distributions with docker pre-installed would probably be compatible as well.
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/DvAz3ygotWYfODOP3duvLbDf.png)](https://asciinema.org/a/DvAz3ygotWYfODOP3duvLbDf)
+
+## FAQ
+
+Check the [wiki](https://github.com/vdo/xmr.sh/wiki/FAQ)
+
 ## ToDo
 
 - [x] Add wizard for DNS domain selection.
@@ -19,11 +27,20 @@ Other distributions with docker pre-installed would probably be compatible as we
 - [x] Mainnet / Stagenet / Testnet selection
 - [x] Pruning enabled
 - [x] Clearnet TLS port selection
-- [ ] Uninstall script
-- [ ] Documentation
+- [x] Uninstall script
 - [x] Make tor service optional
 - [x] Block explorer (disabled)
 - [x] Grafana dashboard
+- [ ] Shellcheck via Github Actions
+- [ ] Installation documentation
 - [ ] arm64 support for all images.
 - [ ] monerod-lws support
 - [ ] monerod-proxy support.
+
+
+# Credits
+
+[@cirocosta](https://github.com/cirocosta) for the metrics exporter and grafana dashboard.
+[@sethforprivacy](https://github.com/sethforprivacy) for providing and maintaining Monero Docker images.
+
+
