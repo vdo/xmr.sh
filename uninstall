@@ -7,21 +7,21 @@
 Off='\033[0m' # Text Reset
 
 # Regular Colors
-Red='\033[0;31m'    # Red
-Green='\033[0;32m'  # Green
-Yellow='\033[0;33m' # Yellow
-Purple='\033[0;35m' # Purple
-White='\033[0;37m'  # White
+Red='\033[0;31m'   # Red
+Green='\033[0;32m' # Green
+#Yellow='\033[0;33m' # Yellow
+#Purple='\033[0;35m' # Purple
+White='\033[0;37m' # White
 
 # Background
 On_Black='\033[40m' # Black
 
 OkBullet="${Green}${On_Black}:: ${White}${On_Black}"
-WarnBullet="${Yellow}${On_Black}:: ${White}${On_Black}"
+#WarnBullet="${Yellow}${On_Black}:: ${White}${On_Black}"
 ErrBullet="${Red}${On_Black}:: ${White}${On_Black}"
 Ok="${Green}${On_Black} ok.${Off}"
 Fail="${Red}${On_Black} failed!${Off}"
-Nok="${Yellow}${On_Black} nok.${Off}"
+#Nok="${Yellow}${On_Black} nok.${Off}"
 
 ################################################################
 # Vars                                                         #
@@ -65,17 +65,18 @@ uninstall() {
         [Yy]*)
             find . -type f -not -name 'data' -print0 | xargs -0 -I {} rm {}
             check_return $?
+            popd >>"${XMRSH_LOG_FILE}" 2>&1 || check_return $?
             break
             ;;
         [Nn]*)
-            rm -rf ./*
+            popd >>"${XMRSH_LOG_FILE}" 2>&1 || check_return $?
+            rm -rf "${XMRSH_DIR}"
             check_return $?
             break
             ;;
         *) echo "   Please answer yes or no." ;;
         esac
     done
-    popd || check_return $?
     echo -e "${OkBullet}Uninstall complete."
 }
 
