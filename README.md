@@ -41,11 +41,9 @@ Check the [wiki](https://github.com/vdo/xmr.sh/wiki/FAQ)
 # Credits
 
 [@cirocosta](https://github.com/cirocosta) for the metrics exporter and grafana dashboard.
-[@sethforprivacy](https://github.com/sethforprivacy) for providing and maintaining Monero Docker images.
 
+[@sethforprivacy](https://github.com/sethforprivacy) for providing and maintaining Monero Docker images.
 
 # Donate XMR 🍕
 
 86GwmtuKWtjJBWT8Srn4oqZHbP41k2kpG79xXKKgauJzCmZkFJ5ihwjVnRodVbVjAx64JeB7VyGbF6hEdwpcPcR7Go8x2YZ
-
-

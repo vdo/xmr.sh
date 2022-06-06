@@ -117,7 +117,6 @@ detect_curl() {
 
 detect_docker() {
     echo -ne "${OkBullet}Checking docker... ${Off}"
-    # docker --version >>"${XMRSH_LOG_FILE}" 2>&1 | grep -q "Docker version"
     if docker --version >>"${XMRSH_LOG_FILE}" 2>&1; then
         DOCKER_INSTALLED=true
         echo -e "${Ok}"
@@ -128,7 +127,6 @@ detect_docker() {
 
 detect_docker_compose() {
     echo -ne "${OkBullet}Checking docker compose... ${Off}"
-    #docker-compose --version >>"${XMRSH_LOG_FILE}" 2>&1 | grep -q "Docker Compose version"
     if docker-compose --version >>"${XMRSH_LOG_FILE}" 2>&1; then
         DOCKER_COMPOSE_INSTALLED=true
         echo -e "${Ok}"
@@ -219,7 +217,7 @@ configure_tls_domain() {
         # Set domain and email address in vars
         sed -i "s/DOMAIN=.*/DOMAIN=${TLS_DOMAIN}/g" .env
         sed -i "s/TRAEFIK_ACME_EMAIL=.*/TRAEFIK_ACME_EMAIL=${TLS_EMAIL}/g" .env
-        # Enable LE settings in compose
+        # Enable Let's Encrypt settings in compose
         sed -i '/#!le/s/# //g' docker-compose.yml
         sed -i '/#!nole/s/- /# - /g' docker-compose.yml
         sed -i "/#\!traefik-command/s/\*traefik-command-nole/\*traefik-command-le/g" docker-compose.yml
@@ -381,7 +379,7 @@ completed() {
     echo
     echo -e " ${Red}┌───────────────────────────────────────────────────────────────────────────[info]──"
     echo -e " ${Red}│${Stat} Network: ${StatInfo}${NETWORK}"
-    echo -e " ${Red}│${Stat} URL: ${StatInfo}https://${HOST}${PORT_SUFF}"
+    echo -e " ${Red}│${Stat} Public URL: ${StatInfo}https://${HOST}${PORT_SUFF}"
 
     echo -e " ${Red}│${Stat} Public IP: ${StatInfo}${PUBLIC_IP}"
     if [ "$ENABLE_TOR" = true ]; then
@@ -420,7 +418,7 @@ install_xmrsh
 configure_network
 configure_tls_domain
 configure_tls_port
-# configure_pruning
+configure_pruning
 configure_cors
 
 configure_tor
