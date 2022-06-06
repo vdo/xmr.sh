@@ -33,14 +33,19 @@ Check the [wiki](https://github.com/vdo/xmr.sh/wiki/FAQ)
 - [x] Grafana dashboard
 - [ ] Shellcheck via Github Actions
 - [ ] Installation documentation
-- [ ] arm64 support for all images.
+- [ ] arm64 support for all images
 - [ ] monerod-lws support
-- [ ] monerod-proxy support.
-
+- [ ] monerod-proxy support for random node forwarding
+- [ ] i2p service
 
 # Credits
 
 [@cirocosta](https://github.com/cirocosta) for the metrics exporter and grafana dashboard.
 [@sethforprivacy](https://github.com/sethforprivacy) for providing and maintaining Monero Docker images.
+
+
+# Donate XMR 🍕
+
+86GwmtuKWtjJBWT8Srn4oqZHbP41k2kpG79xXKKgauJzCmZkFJ5ihwjVnRodVbVjAx64JeB7VyGbF6hEdwpcPcR7Go8x2YZ
 
 
