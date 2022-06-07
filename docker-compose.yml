@@ -1,5 +1,12 @@
 version: "3.7"
 
+x-log-config: &log-config
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "20"
+
 x-traefik-command-le: &traefik-command-le
   command:
     - "--log.level=${TRAEFIK_LOGLEVEL}"
@@ -44,6 +51,7 @@ x-tor-service: &tor-service
       MONEROD_TOR_SERVICE_HOSTS: "${TOR_HTTP_PORT}:monerod:${MONEROD_RESTRICTED_RPC_PORT}"
     volumes:
       - ./data/tor:/var/lib/tor/hidden_service/
+    <<: *log-config
 
 x-explorer-service: &explorer-service
   explorer:
@@ -67,13 +75,15 @@ x-explorer-service: &explorer-service
       - "traefik.http.routers.explorer.tls"
       - "traefik.http.routers.explorer.service=explorer"
       - "traefik.http.services.explorer.loadbalancer.server.port=${EXPLORER_PORT}"
+    <<: *log-config
 
 x-monero-exporter-service: &monero-exporter-service
   monero-exporter:
     command:
       - --monero-addr=http://monerod:${MONEROD_RPC_PORT}
     container_name: monero-exporter
-    image: utxobr/monero-exporter@sha256:737413b1054583535e835e1417b61a8d59a4c08723e4a15c61c4249c2a7d69a4
+    image: vdo1138/monero-exporter:0.0.2
+    <<: *log-config
 
 x-grafana-service: &grafana-service
   grafana:
@@ -102,6 +112,7 @@ x-grafana-service: &grafana-service
       - "traefik.http.routers.grafana.tls"
       - "traefik.http.routers.grafana.service=grafana"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    <<: *log-config
 
 x-prometheus-service: &prometheus-service
   prometheus:
@@ -111,10 +122,11 @@ x-prometheus-service: &prometheus-service
       - --storage.tsdb.path=/data
       - --storage.tsdb.retention.time=30d
     container_name: prometheus
-    image: bitnami/prometheus:${PROMETHEUS_TAG}
+    image: prom/prometheus:${PROMETHEUS_TAG}
     volumes:
       - ./data/prometheus:/data
       - ./config/prometheus/config.yaml:/etc/prometheus/config.yaml:ro
+    <<: *log-config
 
 x-watchtower-service: &watchtower-service
   watchtower:
@@ -125,6 +137,7 @@ x-watchtower-service: &watchtower-service
     labels:
       - com.centurylinklabs.watchtower.enable="false"
     command: --interval 360 --include-stopped
+    <<: *log-config
 
 services:
   traefik:
@@ -138,6 +151,8 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     <<: *traefik-command-nole #!traefik-command
     restart: always
+    <<: *log-config
+
   monerod:
     container_name: monerod
     image: sethsimmons/simple-monerod:${MONEROD_TAG}
@@ -158,6 +173,7 @@ services:
       # - "traefik.http.middlewares.corsheader.headers.accessControlAllowOriginList=${MONEROD_accessControlAllowOriginList}" #!cors
       # - "traefik.http.routers.monerod.middlewares=corsheader" #!cors
     restart: unless-stopped
+    <<: *log-config
 
   # <<: *tor-service #!tor
   # <<: *explorer-service #!explorer
