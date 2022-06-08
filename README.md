@@ -31,12 +31,13 @@ Check the [wiki](https://github.com/vdo/xmr.sh/wiki/FAQ)
 - [x] Make tor service optional
 - [x] Block explorer (disabled)
 - [x] Grafana dashboard
+- [x] arm64 support for all images
+- [x] monerod-lws support (experimental)
 - [ ] Shellcheck via Github Actions
 - [ ] Installation documentation
-- [ ] arm64 support for all images
-- [ ] monerod-lws support
 - [ ] monerod-proxy support for random node forwarding
 - [ ] i2p service
+- [ ] p2pool mining
 
 # Credits
 
