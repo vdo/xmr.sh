@@ -46,6 +46,7 @@ x-tor-service: &tor-service
   tor:
     container_name: tor
     image: vdo1138/tor-hidden-service:${TOR_TAG}
+    restart: unless-stopped
     links:
       - monerod
     environment:
@@ -111,6 +112,7 @@ x-monero-exporter-service: &monero-exporter-service
     command:
       - --monero-addr=http://monerod:${MONEROD_RPC_PORT}
     container_name: monero-exporter
+    restart: unless-stopped
     image: vdo1138/monero-exporter:0.0.2
     <<: *log-config
 
@@ -120,6 +122,7 @@ x-grafana-service: &grafana-service
     command:
       - -config=/etc/grafana/grafana.ini
     container_name: grafana
+    restart: unless-stopped
     image: grafana/grafana:${GRAFANA_TAG}
     ports:
       - 3000
@@ -151,6 +154,7 @@ x-prometheus-service: &prometheus-service
       - --storage.tsdb.path=/data
       - --storage.tsdb.retention.time=30d
     container_name: prometheus
+    restart: unless-stopped
     image: prom/prometheus:${PROMETHEUS_TAG}
     volumes:
       - ./data/prometheus:/data
@@ -160,6 +164,7 @@ x-prometheus-service: &prometheus-service
 x-watchtower-service: &watchtower-service
   watchtower:
     container_name: watchtower
+    restart: unless-stopped
     image: containrrr/watchtower:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
