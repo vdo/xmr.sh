@@ -28,7 +28,7 @@ StatInfo="${White}${On_Black}"
 ################################################################
 # Vars                                                         #
 ################################################################
-VERSION="v0.3.2"
+VERSION="v0.3.3"
 XMRSH_INSTALL_CMD="sudo bash -c \"\$(curl  -sLSf https://get.xmr.sh)\""
 XMRSH_DIR="/opt/xmr.sh"
 XMRSH_BRANCH="main"
@@ -304,7 +304,7 @@ configure_explorer() {
 configure_lws() {
     echo -e "${OkBullet}Configuring LWS..."
     while true; do
-        read -r -e -p "   Do you want to enable the light wallet service? [y/n]: " yn
+        read -r -e -p "   Do you want to enable the light wallet service (experimental)? [y/n]: " yn
         case $yn in
         [Yy]*)
             sed -i '/#!lws/s/# //g' docker-compose.yml
@@ -403,6 +403,9 @@ completed() {
     fi
     if [ "$ENABLE_EXPLORER" = true ]; then
         echo -e " ${Red}│${Stat} Explorer URL: ${StatInfo}https://${HOST}${PORT_SUFF}/explorer"
+    fi
+    if [ "$ENABLE_LWS" = true ]; then
+        echo -e " ${Red}│${Stat} LWS URL: ${StatInfo}https://${HOST}${PORT_SUFF}/lws"
     fi
     if [ "$ENABLE_GRAFANA" = true ]; then
         echo -e " ${Red}│${Stat} Grafana URL: ${StatInfo}https://${HOST}${PORT_SUFF}/grafana"
