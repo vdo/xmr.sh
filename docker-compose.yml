@@ -38,6 +38,7 @@ x-monerod-command: &monerod-command
     --public-node --no-igd --no-zmq
     --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 
     --rpc-restricted-bind-port=${MONEROD_RESTRICTED_RPC_PORT} --confirm-external-bind
+    --zmq-pub tcp://0.0.0.0:${MONEROD_ZMQ_PUB_PORT}--zmq-rpc-bind-port=${MONEROD_ZMQ_RPC_PORT} --zmq-rpc-bind-ip=0.0.0.0
     --rpc-bind-port=${MONEROD_RPC_PORT} --rpc-bind-ip=0.0.0.0
     ${MONEROD_EXTRA_PARAMS}
 
@@ -75,6 +76,34 @@ x-explorer-service: &explorer-service
       - "traefik.http.routers.explorer.tls"
       - "traefik.http.routers.explorer.service=explorer"
       - "traefik.http.services.explorer.loadbalancer.server.port=${EXPLORER_PORT}"
+    <<: *log-config
+
+x-monero-lws-service: &monero-lws-service
+  monero-lws:
+    image: vdo1138/monero-lws:${LWS_TAG}
+    container_name: monero-lws
+    restart: unless-stopped
+    command: >-
+      --rest-server http://0.0.0.0:8000 --daemon=tcp://monerod:${MONEROD_ZMQ_RPC_PORT}
+      --sub=tcp://monerod:${MONEROD_ZMQ_SUB_PORT} --log-level=4
+      --confirm-external-bind
+    volumes:
+      - ./data/monero-lws:/home/monero-lws/.bitmonero/
+    # ports:
+    #   - ${LWS_PORT}
+    depends_on:
+      - monerod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monero-lws.rule=(PathPrefix(`/lws`) )" #!nole
+      # - "traefik.http.routers.monero-lws.rule=(Host(`${DOMAIN}`) && PathPrefix(`/monero-lws`) )" #!le
+      # - "traefik.http.routers.monero-lws.tls.certresolver=le" #!le
+      - "traefik.http.middlewares.stripprefix-monero-lws.stripprefix.prefixes=/lws"
+      - "traefik.http.routers.monero-lws.middlewares=stripprefix-monero-lws"
+      - "traefik.http.routers.monero-lws.entrypoints=websecure"
+      - "traefik.http.routers.monero-lws.tls"
+      - "traefik.http.routers.monero-lws.service=monero-lws"
+      - "traefik.http.services.monero-lws.loadbalancer.server.port=${LWS_PORT}"
     <<: *log-config
 
 x-monero-exporter-service: &monero-exporter-service
@@ -177,6 +206,7 @@ services:
 
   # <<: *tor-service #!tor
   # <<: *explorer-service #!explorer
+  # <<: *monero-lws-service #!lws
   # <<: *monero-exporter-service #!monero-exporter
   # <<: *grafana-service #!grafana
   # <<: *prometheus-service #!prometheus
