@@ -35,7 +35,7 @@ x-traefik-command-nole: &traefik-command-nole
 
 x-monerod-command: &monerod-command
   command: >-
-    --public-node --no-igd --no-zmq
+    --public-node --no-igd
     --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 
     --rpc-restricted-bind-port=${MONEROD_RESTRICTED_RPC_PORT} --confirm-external-bind
     --zmq-pub tcp://0.0.0.0:${MONEROD_ZMQ_PUB_PORT}--zmq-rpc-bind-port=${MONEROD_ZMQ_RPC_PORT} --zmq-rpc-bind-ip=0.0.0.0
@@ -85,7 +85,7 @@ x-monero-lws-service: &monero-lws-service
     restart: unless-stopped
     command: >-
       --rest-server http://0.0.0.0:8000 --daemon=tcp://monerod:${MONEROD_ZMQ_RPC_PORT}
-      --sub=tcp://monerod:${MONEROD_ZMQ_SUB_PORT} --log-level=4
+      --sub=tcp://monerod:${MONEROD_ZMQ_PUB_PORT} --log-level=4
       --confirm-external-bind
     volumes:
       - ./data/monero-lws:/home/monero-lws/.bitmonero/
