@@ -340,7 +340,7 @@ configure_grafana() {
 configure_watchtower() {
     echo -e "${OkBullet}Configuring watchtower..."
     while true; do
-        read -r -e -p "   Do you want to enable automatic updates using watchtower? [y/n]: " yn
+        read -r -e -p "   Do you want to enable automatic node updates using watchtower? [y/n]: " yn
         case $yn in
         [Yy]*)
             sed -i '/#!watchtower/s/# //g' docker-compose.yml
@@ -435,13 +435,13 @@ configure_network
 configure_tls_domain
 configure_tls_port
 configure_pruning
-configure_lws
 configure_cors
 configure_tor
+configure_lws
 # Deployment of explorer disabled until it's stable.
 # configure_explorer
-configure_watchtower
 configure_grafana
+configure_watchtower
 
 start_xmrsh
 completed
