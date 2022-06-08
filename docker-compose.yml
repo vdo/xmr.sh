@@ -97,7 +97,7 @@ x-monero-lws-service: &monero-lws-service
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.monero-lws.rule=(PathPrefix(`/lws`) )" #!nole
-      # - "traefik.http.routers.monero-lws.rule=(Host(`${DOMAIN}`) && PathPrefix(`/monero-lws`) )" #!le
+      # - "traefik.http.routers.monero-lws.rule=(Host(`${DOMAIN}`) && PathPrefix(`/lws`) )" #!le
       # - "traefik.http.routers.monero-lws.tls.certresolver=le" #!le
       - "traefik.http.middlewares.stripprefix-monero-lws.stripprefix.prefixes=/lws"
       - "traefik.http.routers.monero-lws.middlewares=stripprefix-monero-lws"
