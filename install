@@ -301,6 +301,22 @@ configure_explorer() {
     done
 }
 
+configure_lws() {
+    echo -e "${OkBullet}Configuring LWS..."
+    while true; do
+        read -r -e -p "   Do you want to enable the light wallet service? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sed -i '/#!lws/s/# //g' docker-compose.yml
+            ENABLE_LWS=true
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
 configure_grafana() {
     echo -e "${OkBullet}Configuring grafana..."
     while true; do
@@ -419,14 +435,14 @@ configure_network
 configure_tls_domain
 configure_tls_port
 configure_pruning
+configure_lws
 configure_cors
-
 configure_tor
 # Deployment of explorer disabled until it's stable.
 # configure_explorer
 configure_watchtower
 configure_grafana
-# configure_lws
+
 start_xmrsh
 completed
 
