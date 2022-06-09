@@ -34,7 +34,7 @@ Check the [wiki](https://github.com/vdo/xmr.sh/wiki/FAQ)
 - [x] arm64 support for all images
 - [x] monerod-lws support (experimental)
 - [ ] Shellcheck via Github Actions
-- [ ] Installation documentation
+- [ ] Documentation
 - [ ] monerod-proxy support for random node forwarding
 - [ ] i2p service
 - [ ] p2pool mining
