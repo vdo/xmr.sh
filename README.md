@@ -14,7 +14,7 @@ Other distributions with docker pre-installed would probably be compatible as we
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/DvAz3ygotWYfODOP3duvLbDfv.svg)](https://asciinema.org/a/DvAz3ygotWYfODOP3duvLbDfv)
+[![asciicast](https://asciinema.org/a/1gL7tNhb3XgPUr26losgZaeCJ.svg)](https://asciinema.org/a/1gL7tNhb3XgPUr26losgZaeCJ)
 
 ## FAQ
 
