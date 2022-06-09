@@ -187,12 +187,14 @@ configure_network() {
             NETWORK="testnet"
             sed -i "s/MONEROD_P2P_PORT=.*/MONEROD_P2P_PORT=28080/g" .env
             sed -i "/MONEROD_EXTRA_PARAMS/s/$/ --testnet/g" .env
+            sed -i "/LWS_EXTRA_PARAMS/s/$/ --network test/g" .env
             break
             ;;
         "stagenet")
             NETWORK="stagenet"
             sed -i "s/MONEROD_P2P_PORT=.*/MONEROD_P2P_PORT=38080/g" .env
             sed -i "/MONEROD_EXTRA_PARAMS/s/$/ --stagenet/g" .env
+            sed -i "/LWS_EXTRA_PARAMS/s/$/ --network stage/g" .env
             break
             ;;
         *) echo "Invalid network choice!" ;;

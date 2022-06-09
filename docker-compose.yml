@@ -38,7 +38,7 @@ x-monerod-command: &monerod-command
     --public-node --no-igd
     --enable-dns-blocklist --rpc-restricted-bind-ip=0.0.0.0 
     --rpc-restricted-bind-port=${MONEROD_RESTRICTED_RPC_PORT} --confirm-external-bind
-    --zmq-pub tcp://0.0.0.0:${MONEROD_ZMQ_PUB_PORT}--zmq-rpc-bind-port=${MONEROD_ZMQ_RPC_PORT} --zmq-rpc-bind-ip=0.0.0.0
+    --zmq-pub tcp://0.0.0.0:${MONEROD_ZMQ_PUB_PORT} --zmq-rpc-bind-port=${MONEROD_ZMQ_RPC_PORT} --zmq-rpc-bind-ip=0.0.0.0
     --rpc-bind-port=${MONEROD_RPC_PORT} --rpc-bind-ip=0.0.0.0
     ${MONEROD_EXTRA_PARAMS}
 
@@ -87,7 +87,7 @@ x-monero-lws-service: &monero-lws-service
     command: >-
       --rest-server http://0.0.0.0:8000 --daemon=tcp://monerod:${MONEROD_ZMQ_RPC_PORT}
       --sub=tcp://monerod:${MONEROD_ZMQ_PUB_PORT} --log-level=4
-      --confirm-external-bind
+      --confirm-external-bind ${LWS_EXTRA_PARAMS}
     volumes:
       - ./data/monero-lws:/home/monero-lws/.bitmonero/
     # ports:
