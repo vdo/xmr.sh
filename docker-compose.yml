@@ -116,6 +116,24 @@ x-monero-exporter-service: &monero-exporter-service
     image: vdo1138/monero-exporter:0.0.2
     <<: *log-config
 
+x-p2pool-service: &p2pool-service
+  p2pool:
+    image: sethsimmons/p2pool:latest
+    restart: unless-stopped
+    container_name: p2pool
+    #tty: true
+    #stdin_open: true
+    volumes:
+      - ./data/p2pool:/home/p2pool
+    #  - /dev/hugepages:/dev/hugepages:rw
+    ports:
+      - ${P2POOL_STRATUM_PORT}:${P2POOL_STRATUM_PORT}
+      - ${P2POOL_P2P_PORT}:${P2POOL_P2P_PORT}
+    command: >-
+      --wallet "${P2POOL_WALLET}"
+      --stratum "0.0.0.0:${P2POOL_STRATUM_PORT}" --p2p "0.0.0.0:${P2POOL_P2P_PORT}" --rpc-port "${MONEROD_RPC_PORT}"
+      --addpeers "P2POOL_PEERS" --host "monerod"
+
 x-grafana-service: &grafana-service
   grafana:
     user: "1000"
@@ -213,6 +231,7 @@ services:
   # <<: *explorer-service #!explorer
   # <<: *monero-lws-service #!lws
   # <<: *monero-exporter-service #!monero-exporter
+  # <<: *p2pool-service #!p2pool
   # <<: *grafana-service #!grafana
   # <<: *prometheus-service #!prometheus
   # <<: *watchtower-service #!watchtower
