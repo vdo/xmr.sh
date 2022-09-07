@@ -319,6 +319,28 @@ configure_lws() {
     done
 }
 
+configure_p2pool() {
+    echo -e "${OkBullet}Configuring p2pool..."
+    while true; do
+        read -r -e -p "   Do you want to enable the p2pool service? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            read -r -e -p "   Enter the desired primary address which will recieve the rewards. []: " P2P_ADDRESS
+            while ! echo "${P2P_ADDRESS}" | grep -qP '(4|5|9|A)[a-zA-Z|\d]{94}'; do
+                echo -e "${WarnBullet}Address is not valid. Remember: subaddresses are not supported by p2pool."
+                read -r -p "   Enter again your primary address: " P2P_ADDRESS
+            done
+            sed -i "s/P2POOL_WALLET=.*/P2POOL_WALLET=${P2P_ADDRESS}/g" .env
+            sed -i '/#!p2pool/s/# //g' docker-compose.yml
+            ENABLE_P2POOL=true
+            break
+            ;;
+        [Nn]*) break ;;
+        *) echo "   Please answer yes or no." ;;
+        esac
+    done
+}
+
 configure_grafana() {
     echo -e "${OkBullet}Configuring grafana..."
     while true; do
@@ -409,6 +431,9 @@ completed() {
     if [ "$ENABLE_LWS" = true ]; then
         echo -e " ${Red}│${Stat} LWS URL: ${StatInfo}https://${HOST}${PORT_SUFF}/lws"
     fi
+    if [ "$ENABLE_P2POOL" = true ]; then
+        echo -e " ${Red}│${Stat} P2Pool stratum: ${StatInfo}${HOST}:3333"
+    fi
     if [ "$ENABLE_GRAFANA" = true ]; then
         echo -e " ${Red}│${Stat} Grafana URL: ${StatInfo}https://${HOST}${PORT_SUFF}/grafana"
         echo -e " ${Red}│${Stat} Grafana user: ${StatInfo}admin"
@@ -444,7 +469,7 @@ configure_cors
 configure_tor
 configure_lws
 # Deployment of explorer disabled until it's stable.
-# configure_explorer
+configure_explorer
 configure_grafana
 configure_watchtower
 

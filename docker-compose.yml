@@ -45,7 +45,7 @@ x-monerod-command: &monerod-command
 x-tor-service: &tor-service
   tor:
     container_name: tor
-    image: vdo1138/tor-hidden-service:${TOR_TAG}
+    image: goldy/tor-hidden-service:${TOR_TAG}
     restart: unless-stopped
     links:
       - monerod
@@ -84,14 +84,14 @@ x-monero-lws-service: &monero-lws-service
     image: vdo1138/monero-lws:${LWS_TAG}
     container_name: monero-lws
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     command: >-
       --rest-server http://0.0.0.0:8000 --daemon=tcp://monerod:${MONEROD_ZMQ_RPC_PORT}
       --sub=tcp://monerod:${MONEROD_ZMQ_PUB_PORT} --log-level=4
       --confirm-external-bind ${LWS_EXTRA_PARAMS}
     volumes:
       - ./data/monero-lws:/home/monero-lws/.bitmonero/
-    # ports:
-    #   - ${LWS_PORT}
     depends_on:
       - monerod
     labels:
@@ -132,7 +132,7 @@ x-p2pool-service: &p2pool-service
     command: >-
       --wallet "${P2POOL_WALLET}"
       --stratum "0.0.0.0:${P2POOL_STRATUM_PORT}" --p2p "0.0.0.0:${P2POOL_P2P_PORT}" --rpc-port "${MONEROD_RPC_PORT}"
-      --addpeers "P2POOL_PEERS" --host "monerod"
+      --addpeers "P2POOL_PEERS" --host "monerod" --no-randomx
 
 x-grafana-service: &grafana-service
   grafana:
