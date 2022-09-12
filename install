@@ -468,8 +468,9 @@ configure_pruning
 configure_cors
 configure_tor
 configure_lws
+configure_p2pool
 # Deployment of explorer disabled until it's stable.
-configure_explorer
+# configure_explorer
 configure_grafana
 configure_watchtower
 
