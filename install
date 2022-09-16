@@ -28,7 +28,7 @@ StatInfo="${White}${On_Black}"
 ################################################################
 # Vars                                                         #
 ################################################################
-VERSION="v0.3.3"
+VERSION="v0.4.0"
 XMRSH_INSTALL_CMD="sudo bash -c \"\$(curl  -sLSf https://get.xmr.sh)\""
 XMRSH_DIR="/opt/xmr.sh"
 XMRSH_BRANCH="main"
