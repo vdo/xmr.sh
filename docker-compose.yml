@@ -45,7 +45,7 @@ x-monerod-command: &monerod-command
 x-tor-service: &tor-service
   tor:
     container_name: tor
-    image: goldy/tor-hidden-service:${TOR_TAG}
+    image: vdo1138/tor-hidden-service:${TOR_TAG}
     restart: unless-stopped
     links:
       - monerod
