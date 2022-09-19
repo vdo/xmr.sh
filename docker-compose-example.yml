@@ -212,7 +212,7 @@ services:
     ports:
       - "${MONEROD_P2P_PORT}:${MONEROD_P2P_PORT}" # Exposes P2P port
     volumes:
-      - "./data/monero:/home/monero/.bitmonero"
+      - "${MONEROD_DATA_DIR}:/home/monero/.bitmonero"
     labels:
       - "traefik.enable=true"
       # - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`) && PathPrefix(`/`))" #!le

@@ -2,6 +2,37 @@
 
 **xmr.sh** script wizard sets up a new server running a monero node daemon with Docker compose, with your choice of SSL certificates for your domain, network selection, a Tor hidden service, Grafana dashboard and more.
 
+## Getting Started
+
+The most important files are:
+
+* `.env` - where your configurations/secrets are kept
+* `docker-compose.yml` - where your Docker container options are defined
+
+This repo provides example files for you to copy and modify to suit your deployment needs. To get started, simply copy those files and modify as needed.
+
+```bash
+# Update configurations/secrets/settings
+cp env-example .env
+vim .env
+
+# Update Docker containers - uncomment services to run additional helpers
+cp docker-compose-example.yml docker-compose.yml
+vim docker-compose.yml
+```
+
+Once those files are present, use `docker-compose` to launch your containers.
+
+```bash
+docker-compose up -d  # start and daemonize (background) all containers
+
+docker-compose logs -f  # tail all logs
+
+docker-compose logs -f monerod  # tail individual container logs (here monerod)
+
+docker-compose down  # stop containers
+```
+
 ## Distribution support
 
 Compatible and tested on:
