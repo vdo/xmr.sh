@@ -16,7 +16,7 @@ This repo provides example files for you to copy and modify to suit your deploym
 cp env-example .env
 vim .env
 
-# Update Docker containers - uncomment services to run additional helpers
+# Update Docker containers - uncomment services at the bottom to run additional helper services
 cp docker-compose-example.yml docker-compose.yml
 vim docker-compose.yml
 ```
