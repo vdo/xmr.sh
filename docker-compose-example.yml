@@ -212,7 +212,7 @@ services:
     ports:
       - "${MONEROD_P2P_PORT}:${MONEROD_P2P_PORT}" # Exposes P2P port
     volumes:
-      - "./data/monero:/home/monero/.bitmonero"
+      - "${MONEROD_DATA_DIR}:/home/monero/.bitmonero"
     labels:
       - "traefik.enable=true"
       # - "traefik.http.routers.monerod.rule=(Host(`${DOMAIN}`) && PathPrefix(`/`))" #!le
@@ -226,6 +226,8 @@ services:
       # - "traefik.http.routers.monerod.middlewares=corsheader" #!cors
     restart: unless-stopped
     <<: *log-config
+
+# Uncomment the below blocks to add these services to your deployment!
 
   # <<: *tor-service #!tor
   # <<: *explorer-service #!explorer
