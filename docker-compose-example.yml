@@ -227,6 +227,8 @@ services:
     restart: unless-stopped
     <<: *log-config
 
+# Uncomment the below blocks to add these services to your deployment!
+
   # <<: *tor-service #!tor
   # <<: *explorer-service #!explorer
   # <<: *monero-lws-service #!lws
